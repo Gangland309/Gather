@@ -1,3 +1,4 @@
+import {createPilot} from './pilot.mjs';
 import { createVideo } from './video.mjs';
 import { createLive } from './live.mjs';
 import { createCommunity } from './community.mjs';
@@ -86,7 +87,7 @@ function auth(req) {
  const token = /^Bearer ([A-Za-z0-9_-]{43})$/.exec(req.headers.authorization || '')?.[1];
  requireThat(token, 401, 'Please sign in.');
  const user = one('SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.hash=? AND s.expires_at>?', hash(token), Date.now());
- requireThat(user, 401, 'Session expired. Please sign in again.');
+ requireThat(user, 401, 'Session expired. Please sign in again.');requireThat(!user.suspended,403,'This account is suspended. Contact support.');
  return user;
 }
 function profile(user, viewer) {
@@ -120,13 +121,14 @@ async function deliverAction(user,kind) {
  run('INSERT INTO email_actions VALUES(?,?,?,?)',key,user.id,kind,Date.now()+(kind==='verify'?24*3600000:30*60000));
  try {await sendAction(user.email,kind,token);return true;}catch {run('DELETE FROM email_actions WHERE hash=?',key);return false;}
 }
+const pilot=createPilot({db,one,all,run,now,requireThat,textField,jsonBody,transaction,me,hash});
 const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me,notify,hash});
 const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash});
 const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost});
-const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction});
+const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction,me,hash});
 async function api(req,url) {
  const method = req.method, path = url.pathname;
- if(path==='/api/config' && method==='GET') return {supportEmail:process.env.SUPPORT_EMAIL||''};
+ if(path==='/api/config' && method==='GET') return {supportEmail:process.env.SUPPORT_EMAIL||'',inviteRequired:process.env.INVITE_ONLY==='true'};
  if(path==='/api/health' && method==='GET') return {status:'ok'};
  if(path==='/api/auth/forgot-password' && method==='POST') {
   limit(req,'recovery',20,15*60000); const input=await jsonBody(req);
@@ -167,7 +169,7 @@ async function api(req,url) {
    const displayName=textField(input.displayName,'Display name',60,1);
    const salt=randomBytes(16).toString('hex');
    const passwordHash=(await scrypt(password,salt,64)).toString('hex');
-   try { const id=randomUUID(); run('INSERT INTO users(id,email,username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?,?,?)',id,email,username,displayName,passwordHash,salt,now()); run('UPDATE users SET rules_accepted_at=?,is_private=? WHERE id=?',now(),input.isPrivate===true?1:0,id);community.official({id});user=one('SELECT * FROM users WHERE id=?',id); }
+   try { const id=randomUUID(); transaction(()=>{run('INSERT INTO users(id,email,username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?,?,?)',id,email,username,displayName,passwordHash,salt,now()); run('UPDATE users SET rules_accepted_at=?,is_private=? WHERE id=?',now(),input.isPrivate===true?1:0,id);pilot.consume(input.inviteCode,id);community.official({id});});user=one('SELECT * FROM users WHERE id=?',id); }
    catch(e) { if(String(e.message).includes('UNIQUE')) throw new HttpError(409,'Email or username is already in use.'); throw e; }
   } else {
    user=one('SELECT * FROM users WHERE email=?',email);
@@ -176,12 +178,13 @@ async function api(req,url) {
    const expected=Buffer.from(user?.password_hash || '00'.repeat(64),'hex');
    requireThat(user && timingSafeEqual(candidate,expected),401,'Email or password is incorrect.');
   }
+  requireThat(!user.suspended,403,'This account is suspended. Contact support.');
   const token=randomBytes(32).toString('base64url');
   run('INSERT INTO sessions(hash,user_id,expires_at) VALUES(?,?,?)',hash(token),user.id,Date.now()+7*24*3600000);
   let emailSent; if(path.endsWith('register') && verificationRequired) emailSent=await deliverAction(user,'verify');
   return {token,user:me(user),emailSent};
  }
- if(path.startsWith('/api/live')&&((method==='GET')||(method==='POST'&&path.endsWith('/token')))){let optional=null;if(req.headers.authorization)optional=auth(req);limit(req,'live-view',100,60000,optional?.id);const result=await live.route(req,url,optional);if(result!==undefined)return result;}
+ if(path.startsWith('/api/live')&&((method==='GET')||(method==='POST'&&(path.endsWith('/token')||path.endsWith('/end-browser'))))){let optional=null;if(req.headers.authorization)optional=auth(req);limit(req,'live-view',optional?300:1200,60000,optional?.id);const result=await live.route(req,url,optional);if(result!==undefined)return result;}
  if(path.startsWith('/api/public/')&&method==='GET'){const parts=path.split('/'),id=parts[4];
   if(parts[3]==='videos')return video.route(req,new URL(`/api/videos/${id}`,url),{id:''});
   if(parts[3]==='posts')return postView(visiblePost(Number(id),''),'');
@@ -191,6 +194,8 @@ async function api(req,url) {
  if(method!=='GET' && !['/api/auth/logout','/api/support','/api/presence'].includes(path) && verificationRequired) requireThat(user.email_verified,403,'Verify your email before posting or interacting.');
  if(method!=='GET') limit(req,'write',120,60000,user.id);
  if(path==='/api/contacts'&&method==='POST')limit(req,'contacts',5,86400000,user.id);
+ if(method!=='GET'){if(path==='/api/posts')limit(req,'new-post',30,600000,user.id);if(path.endsWith('/chat'))limit(req,'live-chat',30,60000,user.id);if(path.endsWith('/comments'))limit(req,'new-comment',30,600000,user.id);if(path==='/api/support'||path==='/api/reports'||path.endsWith('/report'))limit(req,'reports-support',10,3600000,user.id);}
+ const pilotResult=await pilot.route(req,url,user);if(pilotResult!==undefined)return pilotResult;
  const videoResult=await video.route(req,url,user);if(videoResult!==undefined)return videoResult;
  const liveResult=await live.route(req,url,user);if(liveResult!==undefined)return liveResult;
  const communityResult=await community.route(req,url,user);if(communityResult!==undefined)return communityResult;
@@ -232,6 +237,7 @@ async function api(req,url) {
   run('INSERT INTO uploads(id,user_id,filename,mime) VALUES(?,?,?,?)',id,user.id,filename,mime);
   return {id,url:`/media/${filename}`};
  }
+ if(/^\/api\/posts\/\d+$/.test(path)&&method==='PATCH'){const id=Number(path.split('/').pop()),input=await jsonBody(req),post=one('SELECT * FROM posts WHERE id=? AND user_id=? AND hidden=0',id,user.id);requireThat(post,404,'Post not found.');const body=textField(input.body,'Caption',2000);requireThat(body||post.media_id||post.video_id,400,'A text post cannot be empty.');run('UPDATE posts SET body=? WHERE id=?',body,id);return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);}
  if(path==='/api/posts' && method==='POST') {
   const input=await jsonBody(req),body=textField(input.body,'Post',2000),mediaId=input.mediaId??null,videoId=input.videoId??null;
   requireThat(body || mediaId || videoId,400,'Write something or add a photo.');
@@ -294,7 +300,7 @@ export const server=createServer(async(req,res)=>{
    const viewer=req.headers.authorization?auth(req):{id:''};const name=url.pathname.split('/').at(-1);
    const media=one('SELECT * FROM uploads WHERE filename=?',name);
    requireThat(media&&!blocked(media.user_id,viewer.id),404,'Image not found.');
-   const allowed=media.user_id===viewer.id || all('SELECT * FROM posts WHERE media_id=? AND hidden=0',media.id).some(p=>{try{visiblePost(p.id,viewer.id);return true;}catch{return false;}}) || all('SELECT * FROM users WHERE avatar_id=?',media.id).some(u=>community.canSee(u.id,viewer.id));
+   const allowed=media.user_id===viewer.id || all("SELECT * FROM products WHERE media_id=? AND status='approved'",media.id).some(p=>!blocked(p.seller_id,viewer.id)) || (viewer.id&&me(viewer).isAdmin&&!!one("SELECT 1 FROM products WHERE media_id=? AND status='pending'",media.id)) || all('SELECT * FROM posts WHERE media_id=? AND hidden=0',media.id).some(p=>{try{visiblePost(p.id,viewer.id);return true;}catch{return false;}}) || all('SELECT * FROM users WHERE avatar_id=?',media.id).some(u=>community.canSee(u.id,viewer.id));
    requireThat(allowed,404,'Image not found.');
    res.writeHead(200,{'Content-Type':media.mime,'Cache-Control':'no-store'});res.end(req.method==='HEAD'?undefined:readFileSync(resolve(dataDir,'media',name)));return;
   }

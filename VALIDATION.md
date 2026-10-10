@@ -1,9 +1,7 @@
-# Gather 0.4 validation
+# Validation for Gather 0.5.0
 
-See UPDATE-0.4.md for the exact acceptance-testing limits.
+48 backend tests pass, including invite reuse/expiry/rollback, audited suspension and revoked sessions, onboarding, caption ownership/privacy, idempotent starter Gatherings, post rate limiting, product photo visibility/ownership, signed Mux caption/trim requests, and LiveKit diagnostics/cleanup. Existing auth, messages, private audiences, blocks, gallery, shop catalog, content bot, and persistence tests remain included.
 
-- 34 API tests pass (26 carried forward + 8 community/provider authorization tests).
-- TypeScript and Expo lint checked.
-- Exports: web, iOS, Android JavaScript/assets; no signed native installers.
-- Live/video calls are tested with mocks, not real credentials.
-- Real browser/device camera, microphone, contacts, mail delivery, and provider streaming remain acceptance tests.
+TypeScript and Expo lint pass. Web, iOS, and Android exports pass. These are source/bundle checks, not signed application builds or real-device QA.
+
+LiveKit and Mux tests use injected transports. There has been no real-provider, browser media, audio echo, WebRTC network, phone contact, payment, or fulfillment verification. The device checklist in PILOT-UPDATE.md is required to assess real-world behavior. No production deployment was performed.

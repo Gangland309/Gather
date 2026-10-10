@@ -1,3 +1,5 @@
+This document describes earlier releases. Read PILOT-UPDATE.md first for the current behavior and remaining work.
+
 # Gather Shop and content bot update
 
 Menu → Community → Shop opens the catalog. My store lets verified users save store details, shipping and return policies, and draft listings for resale, dropship, creator merch, products, and third-party sellers. Submit listings for admin review; only approved listings appear in Browse. Admins use the Review tab. Buyers can inspect seller policies, search, and save a shopping bag. Stock is checked when saving the bag but is not reserved. Checkout is intentionally unavailable: no money is charged, orders placed, or suppliers contacted. Product images, variants, inventory sync, supplier fulfillment, taxes, refunds, payments, and seller onboarding still need implementation.
