@@ -1,4 +1,4 @@
-# Latest update: Gather 0.7.1
+# Latest update: Gather 0.8.1
 
 See COLOR-UPDATE.md for the new ivory/charcoal/copper scheme. See DISCORD-SETUP.md for Discord linking, mutual-friend status sharing, the private Discord command, default G avatars, and setup instructions. This includes the prior cumulative pilot/live/shop release.
 

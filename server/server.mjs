@@ -1,3 +1,4 @@
+import {createRooms} from './rooms.mjs';
 import {createDiscord} from './discord.mjs';
 import {createPilot} from './pilot.mjs';
 import { createVideo } from './video.mjs';
@@ -124,9 +125,10 @@ async function deliverAction(user,kind) {
 }
 const pilot=createPilot({db,one,all,run,now,requireThat,textField,jsonBody,transaction,me,hash});
 const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me,notify,hash});
-const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash});
-const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost});
+const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash,disconnectGroupMember:(id,userId)=>rooms.disconnectGroupMember(id,userId)});
+const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost,blocked,me});
 const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction,me,hash});
+const rooms=createRooms({db,one,all,run,now,jsonBody,requireThat,textField,blocked,notify,transaction},live);
 export const discord=createDiscord({db,one,all,run,hash,jsonBody,requireThat,transaction,blocked,me});
 async function api(req,url) {
  const method = req.method, path = url.pathname;
@@ -203,6 +205,7 @@ async function api(req,url) {
  const pilotResult=await pilot.route(req,url,user);if(pilotResult!==undefined)return pilotResult;
  const videoResult=await video.route(req,url,user);if(videoResult!==undefined)return videoResult;
  const liveResult=await live.route(req,url,user);if(liveResult!==undefined)return liveResult;
+ const roomResult=await rooms.route(req,url,user);if(roomResult!==undefined)return roomResult;
  const communityResult=await community.route(req,url,user);if(communityResult!==undefined)return communityResult;
  const socialResult=await social(req,url,user);if(socialResult!==undefined)return socialResult;
  if(path==='/api/auth/logout' && method==='POST') { run('DELETE FROM sessions WHERE hash=?',hash(req.headers.authorization.slice(7))); return {ok:true}; }
@@ -306,7 +309,7 @@ export const server=createServer(async(req,res)=>{
    const viewer=req.headers.authorization?auth(req):{id:''};const name=url.pathname.split('/').at(-1);
    const media=one('SELECT * FROM uploads WHERE filename=?',name);
    requireThat(media&&!blocked(media.user_id,viewer.id),404,'Image not found.');
-   const allowed=media.user_id===viewer.id || all("SELECT * FROM products WHERE media_id=? AND status='approved'",media.id).some(p=>!blocked(p.seller_id,viewer.id)) || (viewer.id&&me(viewer).isAdmin&&!!one("SELECT 1 FROM products WHERE media_id=? AND status='pending'",media.id)) || all('SELECT * FROM posts WHERE media_id=? AND hidden=0',media.id).some(p=>{try{visiblePost(p.id,viewer.id);return true;}catch{return false;}}) || all('SELECT * FROM users WHERE avatar_id=?',media.id).some(u=>community.canSee(u.id,viewer.id));
+   const allowed=media.user_id===viewer.id || all('SELECT id FROM gatherings WHERE cover_id=?',media.id).some(g=>{try{community.group(g.id,viewer.id,true);return true;}catch{return false;}}) || all("SELECT p.* FROM product_photos pp JOIN products p ON p.id=pp.product_id WHERE pp.media_id=? AND p.status='approved'",media.id).some(p=>!blocked(p.seller_id,viewer.id)) || (viewer.id&&me(viewer).isAdmin&&!!one("SELECT 1 FROM product_photos pp JOIN products p ON p.id=pp.product_id WHERE pp.media_id=? AND p.status='pending'",media.id)) || all("SELECT * FROM products WHERE media_id=? AND status='approved'",media.id).some(p=>!blocked(p.seller_id,viewer.id)) || (viewer.id&&me(viewer).isAdmin&&!!one("SELECT 1 FROM products WHERE media_id=? AND status='pending'",media.id)) || all('SELECT * FROM posts WHERE media_id=? AND hidden=0',media.id).some(p=>{try{visiblePost(p.id,viewer.id);return true;}catch{return false;}}) || all('SELECT * FROM users WHERE avatar_id=?',media.id).some(u=>community.canSee(u.id,viewer.id));
    requireThat(allowed,404,'Image not found.');
    res.writeHead(200,{'Content-Type':media.mime,'Cache-Control':'no-store'});res.end(req.method==='HEAD'?undefined:readFileSync(resolve(dataDir,'media',name)));return;
   }

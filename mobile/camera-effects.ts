@@ -1,0 +1,2 @@
+export type CameraFilter='Original'|'Vivid'|'Warm'|'Mono';
+export function effectPixels(data:Uint8ClampedArray,filter:CameraFilter,green:boolean){for(let i=0;i<data.length;i+=4){let r=data[i],g=data[i+1],b=data[i+2];if(green&&g>70&&g>r*1.35&&g>b*1.25){data[i]=58;data[i+1]=15;data[i+2]=108;continue;}if(filter==='Mono')r=g=b=Math.round(.2126*r+.7152*g+.0722*b);else if(filter==='Warm'){r=r*1.08+8;b*=.85;}else if(filter==='Vivid'){const avg=(r+g+b)/3;r=avg+(r-avg)*1.3;g=avg+(g-avg)*1.3;b=avg+(b-avg)*1.3;}data[i]=r;data[i+1]=g;data[i+2]=b;}}

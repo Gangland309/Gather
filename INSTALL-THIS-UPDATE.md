@@ -1,4 +1,6 @@
-# Gather 0.7.1 — install this update
+# Gather 0.8.2 — install this update
+
+See COMMUNITY-PLUS-UPDATE.md for shop photo/video galleries, Gifts previews, public interest hubs, applications, reminders, calls, voice parties, camera effects, navigation and admin additions. Marketing assets and a ten-second Spark video are in the marketing folder.
 
 This cumulative update includes the previous Discord, phone-contact and default G avatar changes, plus:
 
@@ -25,4 +27,6 @@ For local use, in the `gather` folder run `npm ci`, `npm --prefix mobile ci`, th
 
 Live/podcasts require valid LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET in Render. The Admin live connection check verifies the room API; it does not verify camera, microphone or viewer connectivity. Video uploads and playback require Mux configuration. Podcasts are live sessions, not recorded episodes. Native live media currently opens the secure browser studio; moderator controls remain in the Gather screen. This ZIP contains source and Expo exports, not signed App Store/Play Store installers.
 
-58 automated tests pass, including audience filtering, sharing settings, location consent/membership/expiry/deletion, podcast capacity and moderator permissions. TypeScript and lint are checked. Actual provider streaming, physical device location permissions and eight simultaneous camera streams still require operator/device testing. GC payments/cashout and supplier fulfillment remain unfinished and disabled.
+65 automated tests pass, including audience filtering, sharing settings, location consent/membership/expiry/deletion, podcast capacity and moderator permissions. TypeScript and lint are checked. Actual provider streaming, physical device location permissions and eight simultaneous camera streams still require operator/device testing. GC payments/cashout and supplier fulfillment remain unfinished and disabled.
+
+For the upload progress bar and stalled upload diagnostics, see UPLOAD-FIX.md. After Render reports Live, refresh Gather on both devices to load the updated client.
