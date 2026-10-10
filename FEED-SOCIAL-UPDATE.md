@@ -1,3 +1,17 @@
+# Gather Shop and content bot update
+
+Menu → Community → Shop opens the catalog. My store lets verified users save store details, shipping and return policies, and draft listings for resale, dropship, creator merch, products, and third-party sellers. Submit listings for admin review; only approved listings appear in Browse. Admins use the Review tab. Buyers can inspect seller policies, search, and save a shopping bag. Stock is checked when saving the bag but is not reserved. Checkout is intentionally unavailable: no money is charged, orders placed, or suppliers contacted. Product images, variants, inventory sync, supplier fulfillment, taxes, refunds, payments, and seller onboarding still need implementation.
+
+Supplier candidates: Printful (https://www.printful.com/api) for custom-store print-on-demand merch; Syncee (https://www.syncee.com/) for supplier catalogs via supported commerce platforms; Shopify Collective (https://www.shopify.com/collective) for participating brands via a Shopify store. No accounts or supplier integrations have been connected. Supplier HTTPS references are saved with listings; they do not automate purchases or fulfillment. Affiliate links would earn referral commissions, rather than allowing Gather to mark up an external store's checkout.
+
+Gift fee decision: Gather keeps 10% of proceeds after payment/store fees. This is a recorded business decision, not an implemented money flow. GC pricing remains provisional. Store-billed virtual credits and physical merchandise require separate payment design.
+
+# Gather content bot update
+
+Admins: open Menu → Community → Gather. Create the official page first if needed. The Gather content bot generates seven drafts; edit, save, discard, or publish with confirmation. Drafts are stored in the database and only admins can access them. Publishing retries do not duplicate a post. The bot uses ten rotating templates, not an AI model, and repeats after cycling through the library. There is no schedule or automatic publishing in this version. Keep ADMIN_EMAIL set to the email address of your verified admin account.
+
+This cumulative archive includes the refined UI and previous implemented features. Gather Credits, gifting, cash-outs, and the proposed Inter font are not implemented in this release.
+
 # Gather refined UI update
 
 This release replaces the bright purple/lime interface with charcoal, slate, cool white, and restrained blue-gray accents. Dark mode uses neutral charcoal surfaces. Cards are flat with fine borders, corners are less rounded, headings use calmer weights, and active feature tabs use a subtle fill with a clear underline. The original Gather logo stays prominent in a clean white frame, with no lime outline or glow.
@@ -24,6 +38,6 @@ For native iPhone/Android installations, build a new signed app binary to includ
 
 ## Verification and remaining work
 
-36 backend tests, TypeScript, lint, and web/iOS/Android exports pass. Real-device swipes, appearance, camera, and provider-backed video/live calls still need device testing.
+38 backend tests, TypeScript, lint, and web/iOS/Android exports pass. Real-device swipes, appearance, camera, and provider-backed video/live calls still need device testing.
 
 Photo/video editing, automatic spoken subtitles, and phone-number contact matching are not included. Permission-based email contact matching is included. These features still need additional implementation.

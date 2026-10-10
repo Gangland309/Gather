@@ -1,3 +1,4 @@
+import {Shop} from './Shop';
 import {FriendWidgets} from './Friends';
 import {ThemeProvider,useTheme,type Palette} from './Theme';
 import {PublicContent,OfficialPage} from './Public';
@@ -22,7 +23,7 @@ type Post = { videoId?:string|null; audience?:string; id:number; body:string; cr
 type Comment = {id:number;body:string;author:Person};
 type Notice = {id:number;kind:string;displayName:string;username:string;createdAt:string;seen:boolean;postId:number|null};
 type Report = {id:number;post_id:number;body:string;reason:string;username:string};
-type Page = 'Friends'|'Gather'|'Live'|'My account'|'Gallery'|'Gatherings'|'Find friends'|'Home'|'Discover'|'Activity'|'Profile'|'Moderation'|'Messages'|'Privacy'|'Rules'|'Contact'|'Post';
+type Page = 'Shop'|'Friends'|'Gather'|'Live'|'My account'|'Gallery'|'Gatherings'|'Find friends'|'Home'|'Discover'|'Activity'|'Profile'|'Moderation'|'Messages'|'Privacy'|'Rules'|'Contact'|'Post';
 type Conversation={id:number;person:Person;status:string;incoming:boolean;unread:number};
 type Message={id:number;body:string;senderId:string;createdAt:string};
 type Case={id:number;kind:string;reason:string;username:string;content?:string;reply?:string;resolved?:number};
@@ -64,7 +65,7 @@ function GatherApp() {
  const contentScroll=useRef<ScrollView|null>(null),composerInput=useRef<TextInput|null>(null);
  const [token,setToken]=useState<string|null>(null),[user,setUser]=useState<Person|null>(null),[hydrating,setHydrating]=useState(true);
  const params=useLocalSearchParams<{page?:string;userId?:string;postId?:string;groupId?:string}>();
- const page:Page=['Friends','Gather','Live','My account','Gallery','Gatherings','Find friends','Home','Discover','Activity','Messages','Profile','Contact','Privacy','Rules','Moderation','Post'].includes(params.page||'')?params.page as Page:'Home';
+ const page:Page=['Shop','Friends','Gather','Live','My account','Gallery','Gatherings','Find friends','Home','Discover','Activity','Messages','Profile','Contact','Privacy','Rules','Moderation','Post'].includes(params.page||'')?params.page as Page:'Home';
  const [following,setFollowing]=useState(false),[selected,setSelected]=useState<Person|null>(null);
  const [posts,setPosts]=useState<Post[]>([]),[cursor,setCursor]=useState<number|null>(null),[people,setPeople]=useState<Person[]>([]),[notices,setNotices]=useState<Notice[]>([]),[reports,setReports]=useState<Report[]>([]),[blocks,setBlocks]=useState<Person[]>([]);
  const [busy,setBusy]=useState(''),[loading,setLoading]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
@@ -145,7 +146,7 @@ function GatherApp() {
   void poll();const timer=setInterval(poll,10000);return()=>{active=false;clearInterval(timer);};
  },[token,api,page,thread?.id,user?.emailVerified,user?.verificationRequired]);
  const disabled=!!busy;
- const folders:{label:string;pages:Page[]}[]=[{label:'Connect',pages:['Discover','Friends','Find friends','Messages']},{label:'Community',pages:['Gatherings','Gather','Live']},{label:'My Space',pages:['Profile','Gallery','My account']},{label:'Help',pages:['Contact','Privacy','Rules']}];
+ const folders:{label:string;pages:Page[]}[]=[{label:'Connect',pages:['Discover','Friends','Find friends','Messages']},{label:'Community',pages:['Gatherings','Gather','Live','Shop']},{label:'My Space',pages:['Profile','Gallery','My account']},{label:'Help',pages:['Contact','Privacy','Rules']}];
  function quickPost(){setComposerOpen(true);navigate('Home');setPostIntent(v=>v+1);}
  useEffect(()=>{if(page==='Home'&&postIntent){const timer=setTimeout(()=>{contentScroll.current?.scrollTo({y:0,animated:true});composerInput.current?.focus();},100);return()=>clearTimeout(timer);}},[page,postIntent]);
  function navItem(item:Page){const count=item==='Activity'?noticeCount:item==='Messages'?conversations.reduce((n,c)=>n+c.unread,0):0;return <Pressable key={item} accessibilityRole="button" accessibilityState={{selected:page===item}} onPress={()=>navigate(item)} style={[s.navItem,page===item&&s.navActive]}><Text style={[s.navText,page===item&&{color:colors.accent}]}>{item}{count?` · ${count}`:''}</Text></Pressable>;}
@@ -183,6 +184,7 @@ function GatherApp() {
     {user.verificationRequired&&!user.emailVerified&&<View style={[s.card,{gap:12}]}><Text style={s.body}>Verify your email to post, follow, upload photos, or send messages.</Text><Button secondary disabled={disabled} label="Resend verification email" onPress={()=>job('verify',async()=>{await api('/auth/resend-verification','POST');setMessage('Verification email sent. Check your inbox and spam folder.');})}/><Button secondary label="I verified my email" onPress={()=>job('verify-check',async()=>{setUser(await api<Person>('/me'));})}/></View>}
     {['My account','Gallery','Gatherings','Find friends'].includes(page)&&<CommunityPanel initialGroupId={params.groupId} page={page} api={api} userId={user.id} onAccount={async()=>{setUser(await api<Person>('/me'));}} Picture={Picture}/>}
     
+    {page==='Shop'&&<Shop api={api} userId={user.id} isAdmin={!!user.isAdmin}/>}
     {page==='Gather'&&<OfficialPage api={api} isAdmin={!!user.isAdmin} Picture={Picture}/>}
     {page==='Live'&&<LivePanel api={api} userId={user.id}/>}
     {page==='Privacy'&&<Policy kind="Privacy"/>}{page==='Rules'&&<Policy kind="Rules"/>}
