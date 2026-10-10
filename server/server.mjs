@@ -330,7 +330,7 @@ export const server=createServer(async(req,res)=>{
 });
 if(process.argv[1]===fileURLToPath(import.meta.url)) {
  const port=Number(process.env.PORT||8787),host=process.env.HOST||'127.0.0.1';
- void discord.start();
+ void discord.start();community.startBots();
  server.listen(port,host,()=>console.log(`Gather API listening on http://${host}:${port}`));
- const stop=()=>{discord.stop();server.close(()=>{db.close();process.exit(0);});};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+ const stop=()=>{discord.stop();void community.stopBots().then(()=>server.close(()=>{db.close();process.exit(0);}));};process.on('SIGTERM',stop);process.on('SIGINT',stop);
 }

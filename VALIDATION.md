@@ -27,3 +27,11 @@ Community Plus checks cover shop gallery/video ownership and review access, idem
 ## 0.8.8 Live gifts
 
 74 tests passed. TypeScript and lint passed. Added atomic sender/recipient journal entries, idempotent live gifts, public event cursor polling and recipient tile animations. LiveKit/browser/phone playback still requires operator testing.
+
+## 0.8.9 Admin content bot
+
+TypeScript and lint passed. Existing content-bot authorization and publication endpoints are unchanged; the last backend test run passed all 74 tests. Added the bot to the admin panel, explicit official-page setup, shared-draft refresh and a synchronous submission lock. Actual deployed admin UI still requires operator checking.
+
+## 0.9.0 Automatic AI managers, GC form and wallet navigation
+
+80 tests passed; TypeScript and lint passed. AI worker tests cover persisted schedules, overlapping worker claims, role rotation, pause during generation, failed/flagged content, interrupted jobs, owner permissions, explicit automatic-publishing configuration, rolling caps, draft-only runs, raw Responses parsing and moderation. Provider calls use controlled fake responses; no real API credentials were used. Existing GC tests continue to verify exact amounts, owner-only issuance and retry idempotency. GC form always renders amount and review controls; wallet has a Me menu destination and is first in Settings. Actual deployed UI and live provider generation remain to be tested by the operator.

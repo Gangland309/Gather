@@ -61,5 +61,5 @@ export function createCommunity(c) {
   if(path==='/api/admin/official/posts'&&method==='POST'){requireThat(me(user).isAdmin,403,'Administrator access required.');const page=one('SELECT * FROM users WHERE official=1');requireThat(page,400,'Create the official Gather page first.');const i=await jsonBody(req),body=textField(i.body||'','Announcement',2000);requireThat(body.trim()||i.mediaId||i.videoId,400,'Add text, a picture or video.');requireThat(!(i.mediaId&&i.videoId),400,'Choose a photo or video.');if(i.mediaId)requireThat(one('SELECT 1 FROM uploads WHERE id=? AND user_id=?',i.mediaId,user.id),400,'Upload your own announcement picture.');if(i.videoId)requireThat(one("SELECT 1 FROM videos WHERE id=? AND user_id=? AND status='ready'",i.videoId,user.id),400,'Upload and process your own announcement video.');const id=Number(run("INSERT INTO posts(user_id,body,media_id,video_id,created_at,audience) VALUES(?,?,?,?,?,'public')",page.id,body,i.mediaId||null,i.videoId||null,now()).lastInsertRowid);return c.postView(one('SELECT * FROM posts WHERE id=?',id),user.id);}
   return undefined;
  }
- return {route,canSee,canPost,group,official};
+ return {route,canSee,canPost,group,official,startBots:botRoute.start,stopBots:botRoute.stop};
 }

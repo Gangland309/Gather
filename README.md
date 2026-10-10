@@ -1,3 +1,11 @@
+# Latest update: 0.9.0 automatic AI page managers and wallet access
+
+See AI-PAGE-MANAGERS-SETUP.md. Automatic AI text posts with three rotating writing roles, saved schedules, activity logs and pause controls. GC distribution has visible amount/review/confirmation controls. Me → GC Wallet and Settings expose balances and history. Requires a server OpenAI API key to generate content.
+
+# Latest update: 0.8.9 admin content bot
+
+The admin control panel includes the Gather content bot: generate, edit, save, discard and publish drafts as the official Gather page. Includes page setup and refresh controls.
+
 # Latest update: 0.8.8 live gifts
 
 See LIVE-GIFTS-UPDATE.md. Live viewers can send GC or Test GC gifts to a selected host or guest, with participant-specific animations and wallet receipts. Cash-out remains unavailable.
