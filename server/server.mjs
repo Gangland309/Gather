@@ -92,10 +92,10 @@ function auth(req) {
 function profile(user, viewer) {
  const allowed=community.canSee(user.id,viewer);
 
- return { id:user.id, username:user.username, displayName:user.display_name, bio:allowed?user.bio:'', isPrivate:!!user.is_private, canViewPosts:allowed, socials:allowed?JSON.parse(user.socials):[], requestPending:!!one('SELECT 1 FROM follow_requests WHERE requester=? AND target=?',viewer,user.id), createdAt:user.created_at,
+ return { id:user.id, username:user.username, displayName:user.display_name, isOnline:!!viewer&&allowed&&!user.appear_offline&&!!one('SELECT 1 FROM sessions WHERE user_id=? AND expires_at>? AND presence_until>?',user.id,Date.now(),Date.now()), bio:allowed?user.bio:'', isPrivate:!!user.is_private, canViewPosts:allowed, socials:allowed?JSON.parse(user.socials):[], requestPending:!!one('SELECT 1 FROM follow_requests WHERE requester=? AND target=?',viewer,user.id), createdAt:user.created_at,
   followers:one('SELECT COUNT(*) n FROM follows WHERE followed_id=?',user.id).n,
   following:one('SELECT COUNT(*) n FROM follows WHERE follower_id=?',user.id).n,
-  isFollowing:!!one('SELECT 1 FROM follows WHERE follower_id=? AND followed_id=?',viewer,user.id),
+  isFriend:!!one('SELECT 1 FROM follows a JOIN follows b ON b.follower_id=a.followed_id AND b.followed_id=a.follower_id WHERE a.follower_id=? AND a.followed_id=?',viewer,user.id),friendRequestPending:!!one('SELECT 1 FROM friend_requests WHERE sender=? AND recipient=?',viewer,user.id), isFollowing:!!one('SELECT 1 FROM follows WHERE follower_id=? AND followed_id=?',viewer,user.id),
   avatarUrl:user.avatar_id ? (()=>{const u=one('SELECT filename FROM uploads WHERE id=?',user.avatar_id);return u?`/media/${u.filename}`:null;})() : null,
   isBlocked:!!one('SELECT 1 FROM blocks WHERE blocker_id=? AND blocked_id=?',viewer,user.id) };
 }
@@ -120,8 +120,8 @@ async function deliverAction(user,kind) {
  run('INSERT INTO email_actions VALUES(?,?,?,?)',key,user.id,kind,Date.now()+(kind==='verify'?24*3600000:30*60000));
  try {await sendAction(user.email,kind,token);return true;}catch {run('DELETE FROM email_actions WHERE hash=?',key);return false;}
 }
-const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me,notify});
-const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify});
+const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me,notify,hash});
+const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash});
 const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost});
 const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction});
 async function api(req,url) {
@@ -188,7 +188,7 @@ async function api(req,url) {
   if(parts[3]==='profiles'){const u=one('SELECT * FROM users WHERE id=?',id);requireThat(u,404,'Profile not found.');if(parts[5]==='posts')return all('SELECT * FROM posts WHERE user_id=? AND hidden=0 AND group_id IS NULL ORDER BY id DESC LIMIT 50',id).filter(p=>{try{visiblePost(p.id,'');return true;}catch{return false;}}).map(p=>postView(p,''));return profile(u,'');}}
  const user=auth(req);
  if(path==='/api/auth/resend-verification' && method==='POST') {limit(req,'verification',10,15*60000);if(!user.email_verified) {const sent=await deliverAction(user,'verify');requireThat(sent,503,'Email could not be sent. Wait a minute and try again.');}return {ok:true};}
- if(method!=='GET' && !['/api/auth/logout','/api/support'].includes(path) && verificationRequired) requireThat(user.email_verified,403,'Verify your email before posting or interacting.');
+ if(method!=='GET' && !['/api/auth/logout','/api/support','/api/presence'].includes(path) && verificationRequired) requireThat(user.email_verified,403,'Verify your email before posting or interacting.');
  if(method!=='GET') limit(req,'write',120,60000,user.id);
  if(path==='/api/contacts'&&method==='POST')limit(req,'contacts',5,86400000,user.id);
  const videoResult=await video.route(req,url,user);if(videoResult!==undefined)return videoResult;
@@ -209,7 +209,7 @@ async function api(req,url) {
   const target=one('SELECT * FROM users WHERE id=?',m[1]); requireThat(target,404,'User not found.');
   if(!m[2] && method==='GET') { requireThat(!blocked(user.id,target.id),404,'User not found.'); return profile(target,user.id); }
   requireThat(user.id!==target.id,400,'Choose another user.');
-  if(m[2]==='block' && method==='PUT') { transaction(()=>{run('INSERT OR IGNORE INTO blocks VALUES(?,?)',user.id,target.id); run('DELETE FROM follows WHERE (follower_id=? AND followed_id=?) OR (follower_id=? AND followed_id=?)',user.id,target.id,target.id,user.id);}); return {ok:true}; }
+  if(m[2]==='block' && method==='PUT') { transaction(()=>{run('INSERT OR IGNORE INTO blocks VALUES(?,?)',user.id,target.id);run('DELETE FROM friend_requests WHERE (sender=? AND recipient=?) OR (sender=? AND recipient=?)',user.id,target.id,target.id,user.id); run('DELETE FROM follows WHERE (follower_id=? AND followed_id=?) OR (follower_id=? AND followed_id=?)',user.id,target.id,target.id,user.id);}); return {ok:true}; }
   if(m[2]==='block' && method==='DELETE') {run('DELETE FROM blocks WHERE blocker_id=? AND blocked_id=?',user.id,target.id);return {ok:true};}
   if(m[2]==='follow') {
    requireThat(!blocked(user.id,target.id),404,'User not found.');
