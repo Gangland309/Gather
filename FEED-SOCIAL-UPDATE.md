@@ -1,10 +1,12 @@
-# Gather crisp UI update
+# Gather refined UI update
 
-The logo is larger and displayed in a white badge with a lime frame, including in dark mode. The header and bottom shortcuts have purple dividers. Feature navigation has distinct lime selected tabs, and cards/buttons have clearer edges, heavier labels, and consistent touch targets. All previous feed and social features are included.
+This release replaces the bright purple/lime interface with charcoal, slate, cool white, and restrained blue-gray accents. Dark mode uses neutral charcoal surfaces. Cards are flat with fine borders, corners are less rounded, headings use calmer weights, and active feature tabs use a subtle fill with a clear underline. The original Gather logo stays prominent in a clean white frame, with no lime outline or glow.
+
+All previous feed, swipe navigation, account, and social features are included. Live streaming still requires the three LIVEKIT settings in Render; a design update does not configure the streaming service.
 
 # Gather feed and social update
 
-The feed keeps Gather’s purple and lime identity with tall photo/video cards, overlaid captions, and a side rail for likes, comments, sharing, reposting, and reporting. Text posts remain supported. Vertical scrolling moves through posts.
+The feed uses tall photo/video cards, overlaid captions, and a side rail for likes, comments, sharing, reposting, and reporting. Text posts remain supported. Vertical scrolling moves through posts.
 
 Swipe left or right between Feed, Friends, Gatherings, Live, and Discover. Tap the horizontal feature strip for the same navigation. Swiping is paused while the Feed composer or Menu is open. This uses page changes rather than an animated continuous pager; there is no automatic video playback.
 

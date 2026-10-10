@@ -1,9 +1,9 @@
 import React,{createContext,useContext,useEffect,useState} from 'react';
 import {Platform,useColorScheme,Text as NativeText,TextInput as NativeInput,StyleSheet} from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-export const lightColors={background:'#f7f5fc',surface:'#ffffff',line:'#e4def0',ink:'#24143e',muted:'#726782',accent:'#6326d9',dark:'#ffffff',red:'#b32640',lime:'#a8eb32',tint:'#ede5ff'};
+export const lightColors={background:'#f3f4f6',surface:'#ffffff',line:'#d6dbe2',ink:'#17212f',muted:'#596575',accent:'#30465f',dark:'#ffffff',red:'#b32640',lime:'#277c61',tint:'#e8edf2'};
 export type Palette=typeof lightColors;
-const darkColors:Palette={background:'#100c19',surface:'#1d162b',line:'#3a2e4f',ink:'#f5f0ff',muted:'#bcb0cd',accent:'#bc97ff',dark:'#211234',red:'#ff91a5',lime:'#a8eb32',tint:'#302047'};
+const darkColors:Palette={background:'#10151c',surface:'#19212b',line:'#354150',ink:'#f0f3f7',muted:'#b1bdcb',accent:'#b8cce2',dark:'#17212f',red:'#ff91a5',lime:'#62b697',tint:'#253342'};
 type Choice='system'|'light'|'dark';
 const Context=createContext({colors:lightColors,dark:false,choice:'system' as Choice,setChoice:(_v:Choice)=>{}});
 export function ThemeProvider({children}:{children:React.ReactNode}){const system=useColorScheme(),[choice,setChoiceState]=useState<Choice>('system'),[ready,setReady]=useState(false);useEffect(()=>{let active=true;async function restore(){try{const value=Platform.OS==='web'?window.localStorage.getItem('gather-theme'):await SecureStore.getItemAsync('gather-theme');if(active&&['light','dark','system'].includes(value||''))setChoiceState(value as Choice);}catch{}finally{if(active)setReady(true);}}void restore();return()=>{active=false;};},[]);useEffect(()=>{if(!ready)return;try{if(Platform.OS==='web')window.localStorage.setItem('gather-theme',choice);else void SecureStore.setItemAsync('gather-theme',choice).catch(()=>{});}catch{}},[choice,ready]);const dark=choice==='dark'||choice==='system'&&system==='dark';useEffect(()=>{if(Platform.OS==='web'){document.documentElement.style.colorScheme=dark?'dark':'light';document.body.style.backgroundColor=dark?darkColors.background:lightColors.background;}},[dark]);return <Context.Provider value={{colors:dark?darkColors:lightColors,dark,choice,setChoice:setChoiceState}}>{children}</Context.Provider>;}
