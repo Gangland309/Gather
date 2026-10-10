@@ -15,7 +15,8 @@ export function createSocial({db,one,all,run,now,requireThat,textField,blocked,p
  }
  function conversationView(c,user) {
   const person=one('SELECT * FROM users WHERE id=?',c.a===user.id?c.b:c.a);
-  return {id:c.id,person:profile(person,user.id),status:c.status,incoming:c.recipient===user.id,
+  const last=one('SELECT body,created_at FROM messages WHERE conversation_id=? ORDER BY id DESC LIMIT 1',c.id);
+  return {lastMessageAt:last?.created_at||c.created_at,lastMessagePreview:last?.body?.slice(0,120)||'',id:c.id,person:profile(person,user.id),status:c.status,incoming:c.recipient===user.id,
    unread:one('SELECT COUNT(*) n FROM messages WHERE conversation_id=? AND sender_id<>? AND seen=0',c.id,user.id).n};
  }
  return async function social(req,url,user) {

@@ -1,4 +1,8 @@
-# Latest update: Gather 0.8.1
+# Latest update: 0.8.8 live gifts
+
+See LIVE-GIFTS-UPDATE.md. Live viewers can send GC or Test GC gifts to a selected host or guest, with participant-specific animations and wallet receipts. Cash-out remains unavailable.
+
+# Latest update: Gather 0.8.7
 
 See COLOR-UPDATE.md for the new ivory/charcoal/copper scheme. See DISCORD-SETUP.md for Discord linking, mutual-friend status sharing, the private Discord command, default G avatars, and setup instructions. This includes the prior cumulative pilot/live/shop release.
 
@@ -21,3 +25,7 @@ npm run server
 In another terminal, run `npm run web` or `npm run mobile`. To verify: `npm test`, `npm run check`, `npm run lint`, and `npm run build:all`.
 
 Production requires the email settings in `server/.env.example`, a persistent data disk, and HTTPS. Video/live are optional until provider credentials are configured.
+
+Latest additions: Settings, direct calls, Messages & Calls combined logs, and browser sound controls. See SETTINGS-AND-SOUND-UPDATE.md.
+
+Latest: personal marketplace posts, member GC wallets, owner-admin credit grants, themed gift previews, generated invitation links and external sharing.

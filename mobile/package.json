@@ -1,12 +1,13 @@
 {
   "name": "gather-client",
-  "version": "0.8.3",
+  "version": "0.8.8",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo/metro-runtime": "~57.0.16",
     "expo": "~57.0.27",
     "expo-camera": "~57.0.6",
+    "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.21",
     "expo-contacts": "~57.0.6",
     "expo-file-system": "~57.0.7",

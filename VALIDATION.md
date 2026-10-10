@@ -19,3 +19,11 @@ Community Plus checks cover shop gallery/video ownership and review access, idem
 0.8.2: 66 automated tests passed, including validated-origin Mux upload coverage. TypeScript and lint passed. Upload progress measures transfer bytes; processing percentage is not reported by the provider. Real device/Mux verification pending.
 
 0.8.3: 68 automated tests passed, including recipient-only live invitation denial and call history privacy/status transitions. TypeScript, lint and web/iOS/Android exports passed. Real phone/provider verification remains pending.
+
+0.8.4: 69 automated tests passed, including call privacy policy, notification settings, saved timeout, direct token access and peer identity. TypeScript, lint and web/iOS/Android exports passed. Sound controls use browser capture constraints and LiveKit device/volume APIs; physical device/provider audio validation remains pending.
+
+0.8.7: 73 automated tests passed. Coverage includes personal marketplace posts, private GC wallets, verified owner issuance, large exact balances, Test GC separation, idempotent grants, gift catalog and generated invitation validity/consumption/revocation/quota. TypeScript, lint and web/iOS/Android exports passed. Actual device share-sheet/clipboard and production provider verification remain pending.
+
+## 0.8.8 Live gifts
+
+74 tests passed. TypeScript and lint passed. Added atomic sender/recipient journal entries, idempotent live gifts, public event cursor polling and recipient tile animations. LiveKit/browser/phone playback still requires operator testing.

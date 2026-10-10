@@ -1,3 +1,4 @@
+import {createGC} from './gc.mjs';
 import {createRooms} from './rooms.mjs';
 import {createDiscord} from './discord.mjs';
 import {createPilot} from './pilot.mjs';
@@ -51,7 +52,7 @@ const all = (sql, ...p) => db.prepare(sql).all(...p);
 const run = (sql, ...p) => db.prepare(sql).run(...p);
 const now = () => new Date().toISOString();
 const hash = value => createHash('sha256').update(value).digest('hex');
-const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
+const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
 const allowedOrigins = new Set((process.env.CORS_ORIGINS || 'http://localhost:8081,http://127.0.0.1:8081,http://localhost:19006').split(',').map(v => v.trim()));
 for(const origin of [process.env.PUBLIC_ORIGIN,process.env.RENDER_EXTERNAL_URL]) if(origin) allowedOrigins.add(origin);
 const windows = new Map();
@@ -128,11 +129,13 @@ const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,prof
 const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash,disconnectGroupMember:(id,userId)=>rooms.disconnectGroupMember(id,userId)});
 const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost,blocked,me});
 const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction,me,hash});
-const rooms=createRooms({db,one,all,run,now,jsonBody,requireThat,textField,blocked,notify,transaction},live);
+const gcRoute=createGC({db,one,all,run,now,jsonBody,requireThat,textField,transaction,me,notify});
+const rooms=createRooms({db,one,all,run,now,jsonBody,requireThat,textField,blocked,notify,transaction,profile},live);
 export const discord=createDiscord({db,one,all,run,hash,jsonBody,requireThat,transaction,blocked,me});
 async function api(req,url) {
  const method = req.method, path = url.pathname;
- if(path==='/api/config' && method==='GET') return {supportEmail:process.env.SUPPORT_EMAIL||'',inviteRequired:process.env.INVITE_ONLY==='true'};
+ if(path==='/api/config' && method==='GET') return {publicOrigin:process.env.PUBLIC_ORIGIN||process.env.RENDER_EXTERNAL_URL||'',supportEmail:process.env.SUPPORT_EMAIL||'',inviteRequired:process.env.INVITE_ONLY==='true'};
+ if(path==='/api/invites/check'&&method==='GET'){limit(req,'invite-check',30,60000);return pilot.check(url.searchParams.get('code'));}
  if(path==='/api/health' && method==='GET') return {status:'ok'};
  if(path==='/api/auth/forgot-password' && method==='POST') {
   limit(req,'recovery',20,15*60000); const input=await jsonBody(req);
@@ -173,7 +176,7 @@ async function api(req,url) {
    const displayName=textField(input.displayName,'Display name',60,1);
    const salt=randomBytes(16).toString('hex');
    const passwordHash=(await scrypt(password,salt,64)).toString('hex');
-   try { const id=randomUUID(); transaction(()=>{run('INSERT INTO users(id,email,username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?,?,?)',id,email,username,displayName,passwordHash,salt,now()); run('UPDATE users SET rules_accepted_at=?,is_private=? WHERE id=?',now(),input.isPrivate===true?1:0,id);pilot.consume(input.inviteCode,id);community.official({id});});user=one('SELECT * FROM users WHERE id=?',id); }
+   try { const id=randomUUID(); transaction(()=>{run('INSERT INTO users(id,email,username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?,?,?)',id,email,username,displayName,passwordHash,salt,now()); run('INSERT OR IGNORE INTO gc_wallets(user_id) VALUES(?)',id);run('UPDATE users SET rules_accepted_at=?,is_private=? WHERE id=?',now(),input.isPrivate===true?1:0,id);pilot.consume(input.inviteCode,id);community.official({id});});user=one('SELECT * FROM users WHERE id=?',id); }
    catch(e) { if(String(e.message).includes('UNIQUE')) throw new HttpError(409,'Email or username is already in use.'); throw e; }
   } else {
    user=one('SELECT * FROM users WHERE email=?',email);
@@ -205,6 +208,7 @@ async function api(req,url) {
  const pilotResult=await pilot.route(req,url,user);if(pilotResult!==undefined)return pilotResult;
  const videoResult=await video.route(req,url,user);if(videoResult!==undefined)return videoResult;
  const liveResult=await live.route(req,url,user);if(liveResult!==undefined)return liveResult;
+ const gcResult=await gcRoute(req,url,user);if(gcResult!==undefined)return gcResult;
  const roomResult=await rooms.route(req,url,user);if(roomResult!==undefined)return roomResult;
  const communityResult=await community.route(req,url,user);if(communityResult!==undefined)return communityResult;
  const socialResult=await social(req,url,user);if(socialResult!==undefined)return socialResult;

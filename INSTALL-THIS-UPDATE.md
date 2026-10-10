@@ -1,4 +1,6 @@
-# Gather 0.8.3 — install this update
+# Gather 0.8.8 — install this update
+
+This update adds live gifting. See LIVE-GIFTS-UPDATE.md for testing instructions. Viewers choose the recipient and gift, then confirm the GC or Test GC transfer. Its animation appears over the selected participant’s video or camera-off tile for all viewers. Shop checkout and cash-out remain disabled.
 
 See COMMUNITY-PLUS-UPDATE.md for shop photo/video galleries, Gifts previews, public interest hubs, applications, reminders, calls, voice parties, camera effects, navigation and admin additions. Marketing assets and a ten-second Spark video are in the marketing folder.
 
@@ -16,7 +18,7 @@ This cumulative update includes the previous Discord, phone-contact and default 
 1. Download and extract the ZIP. Open its `gather` folder.
 2. Back up your existing project and database first. End active broadcasts before deployment.
 3. Copy the contents of the new `gather` folder into your existing Gather repository, replacing matching source files. Keep your existing `.env`, `data`, uploads and Render persistent disk. Do not replace the repository with an empty folder or delete your data.
-4. Open GitHub Desktop. Review changes, commit with “Gather Sparks podcasts and location update”, then Push origin.
+4. Open GitHub Desktop. Review changes, commit with “Gather live gifts update”, then Push origin.
 5. In Render, use build command `npm ci && npm --prefix mobile ci --include=dev && npm run build:web` and start command `node server/server.mjs`. Keep `DATA_DIR=/var/data` and the existing persistent disk configuration. Wait for the deployment to become Live.
 6. Open https://gatherourworld.com and refresh. If the browser still shows old assets, use an InPrivate window. The server adds new database columns/tables automatically.
 7. Test with two accounts: content sharing on/off, a public and private Spark, podcast invitation acceptance and moderation, and location sharing into a Gathering both accounts have joined. Deny device location once to verify no share is created; share and then stop to verify it disappears for the other member.
@@ -32,3 +34,11 @@ Live/podcasts require valid LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET 
 For the upload progress bar and stalled upload diagnostics, see UPLOAD-FIX.md. After Render reports Live, refresh Gather on both devices to load the updated client.
 
 See REQUESTS-AND-CALLS-UPDATE.md for Requests, profile links and call history.
+
+See SETTINGS-AND-SOUND-UPDATE.md for direct calls, the combined inbox and browser sound preferences.
+
+See MARKETPLACE-POSTS-UPDATE.md for Selling, Looking for and Trading posts.
+
+After deploying, set ADMIN_EMAIL to your Gather login email in Render and verify that account to use GC distribution. See ADMIN-GC-AND-GIFTS-UPDATE.md.
+
+See INVITES-AND-SHARING-UPDATE.md for generated links and external sharing.
