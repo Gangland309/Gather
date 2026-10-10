@@ -17,3 +17,5 @@ Community Plus checks cover shop gallery/video ownership and review access, idem
 0.8.1 posting update: TypeScript and lint passed; web, Android and iOS exports completed; 65 existing automated tests passed. Posting camera flip and upload recovery require real-device/provider validation.
 
 0.8.2: 66 automated tests passed, including validated-origin Mux upload coverage. TypeScript and lint passed. Upload progress measures transfer bytes; processing percentage is not reported by the provider. Real device/Mux verification pending.
+
+0.8.3: 68 automated tests passed, including recipient-only live invitation denial and call history privacy/status transitions. TypeScript, lint and web/iOS/Android exports passed. Real phone/provider verification remains pending.

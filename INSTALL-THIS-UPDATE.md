@@ -1,4 +1,4 @@
-# Gather 0.8.2 — install this update
+# Gather 0.8.3 — install this update
 
 See COMMUNITY-PLUS-UPDATE.md for shop photo/video galleries, Gifts previews, public interest hubs, applications, reminders, calls, voice parties, camera effects, navigation and admin additions. Marketing assets and a ten-second Spark video are in the marketing folder.
 
@@ -30,3 +30,5 @@ Live/podcasts require valid LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET 
 65 automated tests pass, including audience filtering, sharing settings, location consent/membership/expiry/deletion, podcast capacity and moderator permissions. TypeScript and lint are checked. Actual provider streaming, physical device location permissions and eight simultaneous camera streams still require operator/device testing. GC payments/cashout and supplier fulfillment remain unfinished and disabled.
 
 For the upload progress bar and stalled upload diagnostics, see UPLOAD-FIX.md. After Render reports Live, refresh Gather on both devices to load the updated client.
+
+See REQUESTS-AND-CALLS-UPDATE.md for Requests, profile links and call history.
