@@ -1,8 +1,8 @@
-# Gather 0.7.0 — install this update
+# Gather 0.7.1 — install this update
 
 This cumulative update includes the previous Discord, phone-contact and default G avatar changes, plus:
 
-- Charcoal, ivory and copper interface colors with dark mode; original Gather logo preserved.
+- Logo-matched purple and lime interface colors with dark mode; original Gather logo preserved.
 - Sparks: a dedicated swipe-through video feed, Following filter, likes, comments, sharing and repost controls. Only the active Spark plays, initially muted. Existing audience and block restrictions still apply.
 - Podcasts: separate public live conversations with eight speakers total (host plus seven guests). Cameras are optional. Regular live broadcasts remain six speakers total.
 - The podcast host can appoint one moderator. Host and moderator can invite users, remove guests, mute their currently published microphone, moderate comments and choose a featured video box shared with viewers. Invitations still require acceptance. Only the host appoints moderators or ends a broadcast. A moderator role does not grant microphone/camera publishing without a guest invitation. Featured layout follows the selected speaker's available camera; audio-only speakers have no video to enlarge. State updates reach other Gather screens within about three seconds.
