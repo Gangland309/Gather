@@ -1,3 +1,4 @@
+import {createDiscord} from './discord.mjs';
 import {createPilot} from './pilot.mjs';
 import { createVideo } from './video.mjs';
 import { createLive } from './live.mjs';
@@ -93,7 +94,7 @@ function auth(req) {
 function profile(user, viewer) {
  const allowed=community.canSee(user.id,viewer);
 
- return { id:user.id, username:user.username, displayName:user.display_name, isOnline:!!viewer&&allowed&&!user.appear_offline&&!!one('SELECT 1 FROM sessions WHERE user_id=? AND expires_at>? AND presence_until>?',user.id,Date.now(),Date.now()), bio:allowed?user.bio:'', isPrivate:!!user.is_private, canViewPosts:allowed, socials:allowed?JSON.parse(user.socials):[], requestPending:!!one('SELECT 1 FROM follow_requests WHERE requester=? AND target=?',viewer,user.id), createdAt:user.created_at,
+ return { defaultAvatarUrl:'/brand/gather-avatar.png', discord:discord.profile(user.id,viewer), id:user.id, username:user.username, displayName:user.display_name, isOnline:!!viewer&&allowed&&!user.appear_offline&&!!one('SELECT 1 FROM sessions WHERE user_id=? AND expires_at>? AND presence_until>?',user.id,Date.now(),Date.now()), bio:allowed?user.bio:'', isPrivate:!!user.is_private, canViewPosts:allowed, socials:allowed?JSON.parse(user.socials):[], requestPending:!!one('SELECT 1 FROM follow_requests WHERE requester=? AND target=?',viewer,user.id), createdAt:user.created_at,
   followers:one('SELECT COUNT(*) n FROM follows WHERE followed_id=?',user.id).n,
   following:one('SELECT COUNT(*) n FROM follows WHERE follower_id=?',user.id).n,
   isFriend:!!one('SELECT 1 FROM follows a JOIN follows b ON b.follower_id=a.followed_id AND b.followed_id=a.follower_id WHERE a.follower_id=? AND a.followed_id=?',viewer,user.id),friendRequestPending:!!one('SELECT 1 FROM friend_requests WHERE sender=? AND recipient=?',viewer,user.id), isFollowing:!!one('SELECT 1 FROM follows WHERE follower_id=? AND followed_id=?',viewer,user.id),
@@ -107,7 +108,7 @@ function notify(target, actor, kind, postId=null) {const prefs=JSON.parse(one('S
 function postView(p,viewer) {
  const user = one('SELECT * FROM users WHERE id=?',p.user_id);
  const upload = p.media_id ? one('SELECT * FROM uploads WHERE id=?',p.media_id) : null;
- return { original:p.original_id?postView(visiblePost(p.original_id,viewer),viewer):null, id:p.id, videoId:p.video_id, audience:p.audience, groupId:p.group_id, pinned:!!p.pinned, body:p.body, createdAt:p.created_at, author:profile(user,viewer), mediaUrl:upload ? `/media/${upload.filename}` : null,
+ return { original:p.original_id?postView(visiblePost(p.original_id,viewer),viewer):null, canShare:!!user.content_shareable&&(!p.original_id||!!one('SELECT u.content_shareable FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=?',p.original_id)?.content_shareable),id:p.id, videoId:p.video_id, audience:p.audience, groupId:p.group_id, pinned:!!p.pinned, body:p.body, createdAt:p.created_at, author:profile(user,viewer), mediaUrl:upload ? `/media/${upload.filename}` : null,
   likeCount:one('SELECT COUNT(*) n FROM likes l JOIN users u ON u.id=l.user_id WHERE l.post_id=? AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=?))',p.id,viewer,viewer).n,
   commentCount:one('SELECT COUNT(*) n FROM comments c WHERE c.post_id=? AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=c.user_id) OR (b.blocker_id=c.user_id AND b.blocked_id=?))',p.id,viewer,viewer).n,
   liked:!!one('SELECT 1 FROM likes WHERE user_id=? AND post_id=?',viewer,p.id) };
@@ -126,6 +127,7 @@ const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,prof
 const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash});
 const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost});
 const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction,me,hash});
+export const discord=createDiscord({db,one,all,run,hash,jsonBody,requireThat,transaction,blocked,me});
 async function api(req,url) {
  const method = req.method, path = url.pathname;
  if(path==='/api/config' && method==='GET') return {supportEmail:process.env.SUPPORT_EMAIL||'',inviteRequired:process.env.INVITE_ONLY==='true'};
@@ -184,6 +186,7 @@ async function api(req,url) {
   let emailSent; if(path.endsWith('register') && verificationRequired) emailSent=await deliverAction(user,'verify');
   return {token,user:me(user),emailSent};
  }
+ if(path==='/api/discord/callback'&&method==='GET'){limit(req,'discord-callback',30,60000);return discord.callback(url);}
  if(path.startsWith('/api/live')&&((method==='GET')||(method==='POST'&&(path.endsWith('/token')||path.endsWith('/end-browser'))))){let optional=null;if(req.headers.authorization)optional=auth(req);limit(req,'live-view',optional?300:1200,60000,optional?.id);const result=await live.route(req,url,optional);if(result!==undefined)return result;}
  if(path.startsWith('/api/public/')&&method==='GET'){const parts=path.split('/'),id=parts[4];
   if(parts[3]==='videos')return video.route(req,new URL(`/api/videos/${id}`,url),{id:''});
@@ -195,6 +198,8 @@ async function api(req,url) {
  if(method!=='GET') limit(req,'write',120,60000,user.id);
  if(path==='/api/contacts'&&method==='POST')limit(req,'contacts',5,86400000,user.id);
  if(method!=='GET'){if(path==='/api/posts')limit(req,'new-post',30,600000,user.id);if(path.endsWith('/chat'))limit(req,'live-chat',30,60000,user.id);if(path.endsWith('/comments'))limit(req,'new-comment',30,600000,user.id);if(path==='/api/support'||path==='/api/reports'||path.endsWith('/report'))limit(req,'reports-support',10,3600000,user.id);}
+ if(path==='/api/discord/connect'&&method==='POST')limit(req,'discord-connect',10,600000,user.id);
+ const discordResult=await discord.route(req,url,user);if(discordResult!==undefined)return discordResult;
  const pilotResult=await pilot.route(req,url,user);if(pilotResult!==undefined)return pilotResult;
  const videoResult=await video.route(req,url,user);if(videoResult!==undefined)return videoResult;
  const liveResult=await live.route(req,url,user);if(liveResult!==undefined)return liveResult;
@@ -254,8 +259,8 @@ async function api(req,url) {
  if(path==='/api/posts' && method==='GET') {
   const before=Number(url.searchParams.get('before') || Number.MAX_SAFE_INTEGER);
   requireThat(Number.isSafeInteger(before) && before>0,400,'Invalid cursor.');
-  const author=url.searchParams.get('author') || '', following=url.searchParams.get('following')==='true';
-  const posts=all(`SELECT p.* FROM posts p WHERE p.hidden=0 AND p.group_id IS NULL AND p.id<? AND (?='' OR p.user_id=?) AND (?=0 OR p.user_id=? OR EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=? AND f.followed_id=p.user_id)) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=p.user_id) OR (b.blocker_id=p.user_id AND b.blocked_id=?)) ORDER BY p.id DESC LIMIT 20`,before,author,author,following?1:0,user.id,user.id,user.id,user.id);
+  const videoOnly=url.searchParams.get('videoOnly')==='true';const author=url.searchParams.get('author') || '', following=url.searchParams.get('following')==='true';
+  const posts=all(`SELECT p.* FROM posts p WHERE p.hidden=0 AND p.group_id IS NULL AND p.id<? AND (?=0 OR (p.original_id IS NULL AND EXISTS(SELECT 1 FROM videos v WHERE v.id=p.video_id AND v.status='ready'))) AND (?='' OR p.user_id=?) AND (?=0 OR p.user_id=? OR EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=? AND f.followed_id=p.user_id)) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=p.user_id) OR (b.blocker_id=p.user_id AND b.blocked_id=?)) ORDER BY p.id DESC LIMIT 20`,before,videoOnly?1:0,author,author,following?1:0,user.id,user.id,user.id,user.id);
   return {posts:posts.filter(p=>community.canPost(p,user.id)).filter(p=>!p.original_id || (()=>{const o=one('SELECT * FROM posts WHERE id=? AND hidden=0',p.original_id);return o && community.canPost(o,user.id);})()).map(p=>postView(p,user.id)),nextCursor:posts.length===20?posts.at(-1).id:null};
  }
  if((m=/^\/api\/posts\/(\d+)(?:\/(like|comments|report))?$/.exec(path))) {
@@ -293,9 +298,10 @@ export const server=createServer(async(req,res)=>{
    requireThat(!origin || allowedOrigins.has(origin) || origin===ownOrigin,403,'Origin is not allowed.');
    if(origin){res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Vary','Origin');}
    if(req.method==='OPTIONS'){res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,PATCH,DELETE,OPTIONS');res.setHeader('Access-Control-Allow-Headers','Authorization,Content-Type');res.writeHead(204);res.end();return;}
-   const result=await api(req,url);res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(result));return;
+   const result=await api(req,url);if(url.pathname==='/api/discord/callback'){res.setHeader('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'");res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><html><meta name=viewport content="width=device-width,initial-scale=1"><title>Gather Discord connection</title><body style="font-family:system-ui;padding:32px;max-width:600px;margin:auto"><h1>Gather + Discord</h1><p>'+result.message+'</p><p>Return to Gather → My account → Discord. Your account is linked only after you confirm there.</p></body></html>');return;}res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(result));return;
   }
   requireThat(req.method==='GET' || req.method==='HEAD',405,'Method not allowed.');
+  if(url.pathname==='/brand/gather-avatar.png'){res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'});res.end(req.method==='HEAD'?undefined:readFileSync(resolve(here,'../mobile/assets/gather-default-avatar.png')));return;}
   if(/^\/media\/[a-f0-9-]+\.(jpg|png|webp)$/.test(url.pathname)) {
    const viewer=req.headers.authorization?auth(req):{id:''};const name=url.pathname.split('/').at(-1);
    const media=one('SELECT * FROM uploads WHERE filename=?',name);
@@ -317,6 +323,7 @@ export const server=createServer(async(req,res)=>{
 });
 if(process.argv[1]===fileURLToPath(import.meta.url)) {
  const port=Number(process.env.PORT||8787),host=process.env.HOST||'127.0.0.1';
+ void discord.start();
  server.listen(port,host,()=>console.log(`Gather API listening on http://${host}:${port}`));
- const stop=()=>server.close(()=>{db.close();process.exit(0);});process.on('SIGTERM',stop);process.on('SIGINT',stop);
+ const stop=()=>{discord.stop();server.close(()=>{db.close();process.exit(0);});};process.on('SIGTERM',stop);process.on('SIGINT',stop);
 }

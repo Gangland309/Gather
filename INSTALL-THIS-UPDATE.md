@@ -1,0 +1,28 @@
+# Gather 0.7.0 — install this update
+
+This cumulative update includes the previous Discord, phone-contact and default G avatar changes, plus:
+
+- Charcoal, ivory and copper interface colors with dark mode; original Gather logo preserved.
+- Sparks: a dedicated swipe-through video feed, Following filter, likes, comments, sharing and repost controls. Only the active Spark plays, initially muted. Existing audience and block restrictions still apply.
+- Podcasts: separate public live conversations with eight speakers total (host plus seven guests). Cameras are optional. Regular live broadcasts remain six speakers total.
+- The podcast host can appoint one moderator. Host and moderator can invite users, remove guests, mute their currently published microphone, moderate comments and choose a featured video box shared with viewers. Invitations still require acceptance. Only the host appoints moderators or ends a broadcast. A moderator role does not grant microphone/camera publishing without a guest invitation. Featured layout follows the selected speaker's available camera; audio-only speakers have no video to enlarge. State updates reach other Gather screens within about three seconds.
+- My Account: Allow sharing of my content defaults on. Switching it off disables new built-in shares and reposts for existing/future content. It does not undo existing reposts, change audiences, or prevent screenshots or manually copied public links.
+- My Account → Privacy · Location: off by default. Select approved Gatherings, then explicitly request device location and share a snapshot for 15 minutes or one hour. Approved members can view/map active shares. Stop sharing everywhere or disable the setting to delete stored shares. Leaving/removal deletes the Gathering share. No background tracking; no location collected on page load. Expired shares are hidden and deleted on subsequent location requests. Web location requires HTTPS. Native location permissions need a new app build.
+
+## Windows / GitHub Desktop / Render
+
+1. Download and extract the ZIP. Open its `gather` folder.
+2. Back up your existing project and database first. End active broadcasts before deployment.
+3. Copy the contents of the new `gather` folder into your existing Gather repository, replacing matching source files. Keep your existing `.env`, `data`, uploads and Render persistent disk. Do not replace the repository with an empty folder or delete your data.
+4. Open GitHub Desktop. Review changes, commit with “Gather Sparks podcasts and location update”, then Push origin.
+5. In Render, use build command `npm ci && npm --prefix mobile ci --include=dev && npm run build:web` and start command `node server/server.mjs`. Keep `DATA_DIR=/var/data` and the existing persistent disk configuration. Wait for the deployment to become Live.
+6. Open https://gatherourworld.com and refresh. If the browser still shows old assets, use an InPrivate window. The server adds new database columns/tables automatically.
+7. Test with two accounts: content sharing on/off, a public and private Spark, podcast invitation acceptance and moderation, and location sharing into a Gathering both accounts have joined. Deny device location once to verify no share is created; share and then stop to verify it disappears for the other member.
+
+For local use, in the `gather` folder run `npm ci`, `npm --prefix mobile ci`, then `npm run server`. In a second terminal run `npm run web`.
+
+## Services and current limits
+
+Live/podcasts require valid LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET in Render. The Admin live connection check verifies the room API; it does not verify camera, microphone or viewer connectivity. Video uploads and playback require Mux configuration. Podcasts are live sessions, not recorded episodes. Native live media currently opens the secure browser studio; moderator controls remain in the Gather screen. This ZIP contains source and Expo exports, not signed App Store/Play Store installers.
+
+58 automated tests pass, including audience filtering, sharing settings, location consent/membership/expiry/deletion, podcast capacity and moderator permissions. TypeScript and lint are checked. Actual provider streaming, physical device location permissions and eight simultaneous camera streams still require operator/device testing. GC payments/cashout and supplier fulfillment remain unfinished and disabled.

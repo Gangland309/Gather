@@ -1,7 +1,7 @@
 {
   "name": "gather-platform",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.7.0",
   "engines": {
     "node": ">=24.0.0"
   },
@@ -16,6 +16,7 @@
     "lint": "npm --prefix mobile run lint"
   },
   "dependencies": {
+    "discord.js": "^14.27.0",
     "livekit-server-sdk": "^2.19.1"
   }
 }

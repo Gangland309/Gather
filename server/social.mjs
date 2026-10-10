@@ -28,8 +28,8 @@ export function createSocial({db,one,all,run,now,requireThat,textField,blocked,p
   }
   if((m=/^\/api\/posts\/(\d+)$/.exec(path)) && method==='GET') return postView(visiblePost(Number(m[1]),user.id),user.id);
   if((m=/^\/api\/posts\/(\d+)\/repost$/.exec(path)) && method==='POST') {
-   let original=visiblePost(Number(m[1]),user.id);if(original.original_id) original=visiblePost(original.original_id,user.id);
-   requireThat(original.user_id!==user.id,400,'Choose another person’s post to repost.');
+   let original=visiblePost(Number(m[1]),user.id);requireThat(postView(original,user.id).canShare,403,'The creator has disabled sharing.');if(original.original_id) original=visiblePost(original.original_id,user.id);
+   requireThat(one('SELECT content_shareable FROM users WHERE id=?',original.user_id)?.content_shareable,403,'The creator has disabled sharing.');requireThat(original.user_id!==user.id,400,'Choose another person’s post to repost.');
    const input=await jsonBody(req),body=textField(input.body||'','Caption',2000);
    if(run('INSERT OR IGNORE INTO posts(user_id,body,created_at,original_id) VALUES(?,?,?,?)',user.id,body,now(),original.id).changes)notify(original.user_id,user.id,'repost',original.id);
    return postView(one('SELECT * FROM posts WHERE user_id=? AND original_id=?',user.id,original.id),user.id);

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gather",
     "slug": "gather-platform",
-    "version": "0.5.0",
+    "version": "0.7.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -16,7 +16,10 @@
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.example.gather"
+      "package": "com.example.gather",
+      "blockedPermissions": [
+        "android.permission.WRITE_CONTACTS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -36,11 +39,20 @@
       [
         "expo-contacts",
         {
-          "contactsPermission": "With your permission, Gather checks selected email contacts for opted-in members."
+          "contactsPermission": "Gather uses your phone contacts only after you opt in, so you can select email addresses to find friends. No invitations are sent automatically."
         }
       ],
       "expo-video",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Gather uses your current location only when you choose to share it with selected Gatherings.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
+        }
+      ]
     ],
     "scheme": "gather-dev"
   }
