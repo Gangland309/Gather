@@ -1,7 +1,10 @@
 node_modules/
 .expo/
 dist/
-.env
-.env.local
+.env*
+!.env.example
 server/data/
-*.sqlite*
+backups/
+*.sqlite
+*.sqlite-*
+*.db

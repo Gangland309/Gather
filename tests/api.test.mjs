@@ -5,6 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { spawn } from 'node:child_process';
+process.env.NODE_ENV='test';
+delete process.env.RESEND_API_KEY;
+delete process.env.EMAIL_VERIFICATION_REQUIRED;
 const data=mkdtempSync(join(tmpdir(),'gather-test-'));
 process.env.DATA_DIR=data;
 process.env.ADMIN_EMAIL='owner@example.test';
@@ -16,7 +19,7 @@ async function call(path,{token,method='GET',body,headers={}}={}) {
  return {status:r.status,data:await r.json()};
 }
 const password='Different-password-2026!';
-async function account(username,email=`${username}@example.test`){const r=await call('/auth/register',{method:'POST',body:{username,email,password,displayName:username.toUpperCase()}});assert.equal(r.status,200,JSON.stringify(r.data));return r.data;}
+async function account(username,email=`${username}@example.test`){const r=await call('/auth/register',{method:'POST',body:{username,email,password,agreedRules:true,ageConfirmed:true,displayName:username.toUpperCase()}});assert.equal(r.status,200,JSON.stringify(r.data));return r.data;}
 await test('real account-to-account API workflows and authorization',async t=>{
  const alice=await account('alice'),bob=await account('bob'),owner=await account('owner');
  const a=alice.token,b=bob.token,o=owner.token;
@@ -26,7 +29,7 @@ await test('real account-to-account API workflows and authorization',async t=>{
   assert.equal((await call('/auth/login',{method:'POST',body:{email:'alice@example.test',password:'Wrong-password-2026!'}})).status,401);
   assert.equal((await call('/auth/login',{method:'POST',body:{email:'alice@example.test',password}})).status,200);
   assert.equal((await call('/auth/register',{method:'POST',body:{username:'bad name',email:'valid@example.test',password,displayName:'Bad'}})).status,400);
-  assert.equal((await call('/auth/register',{method:'POST',body:{username:'alice',email:'fresh@example.test',password,displayName:'Duplicate'}})).status,409);
+  assert.equal((await call('/auth/register',{method:'POST',body:{username:'alice',email:'fresh@example.test',password,displayName:'Duplicate',agreedRules:true,ageConfirmed:true}})).status,409);
   const me=await call('/me',{token:a});assert.equal(me.data.email,undefined);assert.equal(me.data.password_hash,undefined);
   assert.equal((await call('/me',{token:o})).data.isAdmin,true);
   assert.equal((await call('/me',{token:a,headers:{Origin:'https://evil.example'}})).status,403);
@@ -75,10 +78,10 @@ await test('real account-to-account API workflows and authorization',async t=>{
   assert.equal((await call('/uploads',{token:a,method:'POST',body:{base64:Buffer.from('<script>alert(1)</script>').toString('base64')}})).status,400);
   // Valid 1x1 PNG.
   const uploaded=await call('/uploads',{token:a,method:'POST',body:{base64:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII='}});assert.equal(uploaded.status,200);photoId=uploaded.data.id;mediaUrl=uploaded.data.url;
-  assert.equal((await fetch(`${base}${mediaUrl}`)).status,404);
+  assert.equal((await fetch(`${base}${mediaUrl}`,{headers:{Authorization:`Bearer ${a}`}})).status,404);
   assert.equal((await call('/posts',{token:b,method:'POST',body:{body:'Steal photo',mediaId:photoId}})).status,400);
   const photo=await call('/posts',{token:a,method:'POST',body:{body:'Photo',mediaId:photoId}});assert.equal(photo.status,200);photoId=photo.data.id;
-  const media=await fetch(`${base}${mediaUrl}`);assert.equal(media.status,200);assert.equal(media.headers.get('content-type'),'image/png');assert.equal((await media.arrayBuffer()).byteLength,68);
+  const media=await fetch(`${base}${mediaUrl}`,{headers:{Authorization:`Bearer ${a}`}});assert.equal(media.status,200);assert.equal(media.headers.get('content-type'),'image/png');assert.equal((await media.arrayBuffer()).byteLength,68);
  });
  await t.test('report queue requires administrator and hidden media is unavailable',async()=>{
   assert.equal((await call('/admin/reports',{token:b})).status,403);
@@ -90,7 +93,7 @@ await test('real account-to-account API workflows and authorization',async t=>{
   assert.equal((await call(`/admin/reports/${reportId}`,{token:o,method:'PATCH',body:{hidePost:true}})).status,200);
   assert.equal((await call('/admin/reports',{token:o})).data.length,0);
   assert.ok((await call('/posts',{token:a})).data.posts.every(p=>p.id!==photoId));
-  assert.equal((await fetch(`${base}${mediaUrl}`)).status,404);
+  assert.equal((await fetch(`${base}${mediaUrl}`,{headers:{Authorization:`Bearer ${a}`}})).status,404);
  });
  await t.test('on-disk credentials contain hashes, not password or session secrets',async()=>{
   const disk=new DatabaseSync(join(data,'gather.sqlite'));

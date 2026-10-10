@@ -1,3 +1,5 @@
+import { createSocial } from './social.mjs';
+import { mailConfigured, sendAction } from './email.mjs';
 import { createServer } from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { randomBytes, randomUUID, createHash, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
@@ -28,6 +30,16 @@ db.exec(`PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL;
  CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
  CREATE INDEX IF NOT EXISTS follows_followed ON follows(followed_id);
 `);
+// Additive migration retains existing accounts, posts, and uploaded files.
+const columns=db.prepare('PRAGMA table_info(users)').all().map(c=>c.name);
+if(!columns.includes('email_verified')) db.exec('ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0');
+if(!columns.includes('rules_accepted_at')) db.exec("ALTER TABLE users ADD COLUMN rules_accepted_at TEXT");
+if(!columns.includes('avatar_id')) db.exec('ALTER TABLE users ADD COLUMN avatar_id TEXT REFERENCES uploads(id)');
+db.exec(`CREATE TABLE IF NOT EXISTS email_actions(hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,kind TEXT NOT NULL,expires_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS email_limits(email TEXT NOT NULL,kind TEXT NOT NULL,last_sent INTEGER NOT NULL,PRIMARY KEY(email,kind));`);
+const verificationRequired=process.env.NODE_ENV==='production' || process.env.EMAIL_VERIFICATION_REQUIRED==='true' || mailConfigured;
+if(process.env.NODE_ENV==='production' && !mailConfigured) throw new Error('Production requires RESEND_API_KEY, EMAIL_FROM, and PUBLIC_ORIGIN.');
+if(process.env.RENDER==='true' && !process.env.DATA_DIR) throw new Error('Set DATA_DIR to your persistent disk mount path.');
 const one = (sql, ...p) => db.prepare(sql).get(...p);
 const all = (sql, ...p) => db.prepare(sql).all(...p);
 const run = (sql, ...p) => db.prepare(sql).run(...p);
@@ -35,11 +47,12 @@ const now = () => new Date().toISOString();
 const hash = value => createHash('sha256').update(value).digest('hex');
 const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
 const allowedOrigins = new Set((process.env.CORS_ORIGINS || 'http://localhost:8081,http://127.0.0.1:8081,http://localhost:19006').split(',').map(v => v.trim()));
+for(const origin of [process.env.PUBLIC_ORIGIN,process.env.RENDER_EXTERNAL_URL]) if(origin) allowedOrigins.add(origin);
 const windows = new Map();
 const cleanup = setInterval(() => {
  const t = Date.now();
  for (const [key, value] of windows) if (value.until < t) windows.delete(key);
- run('DELETE FROM sessions WHERE expires_at<?', t);
+ run('DELETE FROM sessions WHERE expires_at<?', t);run('DELETE FROM email_actions WHERE expires_at<?',t);
 }, 60000);
 cleanup.unref();
 class HttpError extends Error { constructor(status, message) { super(message); this.status = status; } }
@@ -50,9 +63,9 @@ function textField(value, name, max, min = 0) {
  requireThat(text.length >= min && text.length <= max, 400, `${name} must contain ${min}–${max} characters.`);
  return text;
 }
-function limit(req, category, maximum, duration) {
+function limit(req, category, maximum, duration, identity) {
  // Never trust arbitrary X-Forwarded-For headers. Configure a trusted proxy before public deployment.
- const key = `${req.socket.remoteAddress}:${category}`;
+ const key = `${identity || req.socket.remoteAddress}:${category}`;
  const t = Date.now();
  let entry = windows.get(key);
  if (!entry || entry.until < t) { entry = { count: 0, until: t + duration }; windows.set(key, entry); }
@@ -78,38 +91,75 @@ function profile(user, viewer) {
   followers:one('SELECT COUNT(*) n FROM follows WHERE followed_id=?',user.id).n,
   following:one('SELECT COUNT(*) n FROM follows WHERE follower_id=?',user.id).n,
   isFollowing:!!one('SELECT 1 FROM follows WHERE follower_id=? AND followed_id=?',viewer,user.id),
+  avatarUrl:user.avatar_id ? (()=>{const u=one('SELECT filename FROM uploads WHERE id=?',user.avatar_id);return u?`/media/${u.filename}`:null;})() : null,
   isBlocked:!!one('SELECT 1 FROM blocks WHERE blocker_id=? AND blocked_id=?',viewer,user.id) };
 }
-function me(user) { return {...profile(user,user.id), isAdmin:!!adminEmail && user.email===adminEmail}; }
+function me(user) { return {...profile(user,user.id), emailVerified:!!user.email_verified, verificationRequired, isAdmin:!!adminEmail && user.email===adminEmail && (!verificationRequired || !!user.email_verified)}; }
 function blocked(a,b) { return !!one('SELECT 1 FROM blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?)',a,b,b,a); }
-function visiblePost(id, viewer) { const post = one('SELECT * FROM posts WHERE id=? AND hidden=0',id); requireThat(post && !blocked(viewer,post.user_id),404,'Post not found.'); return post; }
+function visiblePost(id, viewer) { const post = one('SELECT * FROM posts WHERE id=? AND hidden=0',id); requireThat(post && !blocked(viewer,post.user_id) && (!post.original_id || (()=>{const original=one('SELECT * FROM posts WHERE id=? AND hidden=0',post.original_id);return original && !blocked(viewer,original.user_id);})()),404,'Post not found.'); return post; }
 function notify(target, actor, kind, postId=null) { if(target!==actor) run('INSERT INTO notifications(user_id,actor_id,kind,post_id,created_at) VALUES(?,?,?,?,?)',target,actor,kind,postId,now()); }
 function postView(p,viewer) {
  const user = one('SELECT * FROM users WHERE id=?',p.user_id);
  const upload = p.media_id ? one('SELECT * FROM uploads WHERE id=?',p.media_id) : null;
- return { id:p.id, body:p.body, createdAt:p.created_at, author:profile(user,viewer), mediaUrl:upload ? `/media/${upload.filename}` : null,
+ return { original:p.original_id?postView(visiblePost(p.original_id,viewer),viewer):null, id:p.id, body:p.body, createdAt:p.created_at, author:profile(user,viewer), mediaUrl:upload ? `/media/${upload.filename}` : null,
   likeCount:one('SELECT COUNT(*) n FROM likes l JOIN users u ON u.id=l.user_id WHERE l.post_id=? AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=?))',p.id,viewer,viewer).n,
   commentCount:one('SELECT COUNT(*) n FROM comments c WHERE c.post_id=? AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=c.user_id) OR (b.blocker_id=c.user_id AND b.blocked_id=?))',p.id,viewer,viewer).n,
   liked:!!one('SELECT 1 FROM likes WHERE user_id=? AND post_id=?',viewer,p.id) };
 }
+async function deliverAction(user,kind) {
+ const previous=one('SELECT last_sent FROM email_limits WHERE email=? AND kind=?',user.email,kind);
+ if(previous && Date.now()-previous.last_sent<60000) return false;
+ run('INSERT INTO email_limits VALUES(?,?,?) ON CONFLICT(email,kind) DO UPDATE SET last_sent=excluded.last_sent',user.email,kind,Date.now());
+ const token=randomBytes(32).toString('base64url');
+ const key=hash(token);
+ run('INSERT INTO email_actions VALUES(?,?,?,?)',key,user.id,kind,Date.now()+(kind==='verify'?24*3600000:30*60000));
+ try {await sendAction(user.email,kind,token);return true;}catch {run('DELETE FROM email_actions WHERE hash=?',key);return false;}
+}
+const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me});
 async function api(req,url) {
  const method = req.method, path = url.pathname;
+ if(path==='/api/config' && method==='GET') return {supportEmail:process.env.SUPPORT_EMAIL||''};
  if(path==='/api/health' && method==='GET') return {status:'ok'};
- if(['/api/auth/register','/api/auth/login'].includes(path) && method==='POST') {
-  limit(req,'auth',20,15*60000);
+ if(path==='/api/auth/forgot-password' && method==='POST') {
+  limit(req,'recovery',20,15*60000); const input=await jsonBody(req);
+  const email=textField(input.email,'Email',254,3).toLowerCase();
+  requireThat(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),400,'Enter a valid email.');
+  const existing=one('SELECT * FROM users WHERE email=?',email);
+  // Return the same response promptly; provider latency must not reveal registered emails.
+  if(existing) void deliverAction(existing,'reset').catch(()=>{});
+  return {ok:true,message:'If an account exists, a reset link will arrive shortly.'};
+ }
+ if(['/api/auth/verify-email','/api/auth/reset-password'].includes(path) && method==='POST') {
+  limit(req,'action',30,15*60000); const input=await jsonBody(req);
+  requireThat(typeof input.token==='string' && /^[A-Za-z0-9_-]{43}$/.test(input.token),400,'This link is invalid or expired.');
+  const kind=path.endsWith('verify-email')?'verify':'reset';
+  const find=()=>one('SELECT * FROM email_actions WHERE hash=? AND kind=? AND expires_at>?',hash(input.token),kind,Date.now());
+  requireThat(find(),400,'This link is invalid or expired.');
+  let salt,passwordHash;
+  if(kind==='reset') {requireThat(typeof input.password==='string' && input.password.length>=12 && input.password.length<=128,400,'Password must contain 12–128 characters.');salt=randomBytes(16).toString('hex');passwordHash=(await scrypt(input.password,salt,64)).toString('hex');}
+  transaction(()=>{const action=find();requireThat(action,400,'This link is invalid or expired.');
+   if(kind==='verify') run('UPDATE users SET email_verified=1 WHERE id=?',action.user_id);
+   else {run('UPDATE users SET password_hash=?,salt=?,email_verified=1 WHERE id=?',passwordHash,salt,action.user_id);run('DELETE FROM sessions WHERE user_id=?',action.user_id);}
+   run('DELETE FROM email_actions WHERE user_id=? AND kind=?',action.user_id,kind);
+  });return {ok:true};
+ }
+ if(['/api/auth/register' ,'/api/auth/login'].includes(path) && method==='POST') {
+  limit(req,'auth',200,15*60000);
   const input=await jsonBody(req);
   const email=textField(input.email,'Email',254,3).toLowerCase();
   requireThat(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),400,'Enter a valid email.');
+  limit(req,'account-auth',15,15*60000,email);
   const password = input.password;
   requireThat(typeof password==='string' && password.length>=12 && password.length<=128,400,'Password must contain 12–128 characters.');
   let user;
   if(path.endsWith('register')) {
+   requireThat(input.agreedRules===true && input.ageConfirmed===true,400,'Confirm you are at least 13 and agree to the community rules.');
    const username=textField(input.username,'Username',24,3).toLowerCase();
    requireThat(/^[a-z0-9_]+$/.test(username),400,'Username can use letters, numbers, and underscores.');
    const displayName=textField(input.displayName,'Display name',60,1);
    const salt=randomBytes(16).toString('hex');
    const passwordHash=(await scrypt(password,salt,64)).toString('hex');
-   try { const id=randomUUID(); run('INSERT INTO users(id,email,username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?,?,?)',id,email,username,displayName,passwordHash,salt,now()); user=one('SELECT * FROM users WHERE id=?',id); }
+   try { const id=randomUUID(); run('INSERT INTO users(id,email,username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?,?,?)',id,email,username,displayName,passwordHash,salt,now()); run('UPDATE users SET rules_accepted_at=? WHERE id=?',now(),id);user=one('SELECT * FROM users WHERE id=?',id); }
    catch(e) { if(String(e.message).includes('UNIQUE')) throw new HttpError(409,'Email or username is already in use.'); throw e; }
   } else {
    user=one('SELECT * FROM users WHERE email=?',email);
@@ -120,10 +170,14 @@ async function api(req,url) {
   }
   const token=randomBytes(32).toString('base64url');
   run('INSERT INTO sessions(hash,user_id,expires_at) VALUES(?,?,?)',hash(token),user.id,Date.now()+7*24*3600000);
-  return {token,user:me(user)};
+  let emailSent; if(path.endsWith('register') && verificationRequired) emailSent=await deliverAction(user,'verify');
+  return {token,user:me(user),emailSent};
  }
  const user=auth(req);
- if(method!=='GET') limit(req,'write',120,60000);
+ if(path==='/api/auth/resend-verification' && method==='POST') {limit(req,'verification',10,15*60000);if(!user.email_verified) {const sent=await deliverAction(user,'verify');requireThat(sent,503,'Email could not be sent. Wait a minute and try again.');}return {ok:true};}
+ if(method!=='GET' && !['/api/auth/logout','/api/support'].includes(path) && verificationRequired) requireThat(user.email_verified,403,'Verify your email before posting or interacting.');
+ if(method!=='GET') limit(req,'write',120,60000,user.id);
+ const socialResult=await social(req,url,user);if(socialResult!==undefined)return socialResult;
  if(path==='/api/auth/logout' && method==='POST') { run('DELETE FROM sessions WHERE hash=?',hash(req.headers.authorization.slice(7))); return {ok:true}; }
  if(path==='/api/me' && method==='GET') return me(user);
  if(path==='/api/me' && method==='PATCH') { const input=await jsonBody(req); run('UPDATE users SET display_name=?,bio=? WHERE id=?',textField(input.displayName,'Display name',60,1),textField(input.bio,'Bio',300),user.id); return me(one('SELECT * FROM users WHERE id=?',user.id)); }
@@ -146,7 +200,7 @@ async function api(req,url) {
   }
  }
  if(path==='/api/uploads' && method==='POST') {
-  limit(req,'upload',10,60000);
+  limit(req,'upload',10,60000,user.id);
   const input=await jsonBody(req,8*1024*1024);
   requireThat(typeof input.base64==='string' && /^[A-Za-z0-9+/]*={0,2}$/.test(input.base64) && input.base64.length%4===0,400,'Invalid image data.');
   const data=Buffer.from(input.base64,'base64');
@@ -172,7 +226,7 @@ async function api(req,url) {
   requireThat(Number.isSafeInteger(before) && before>0,400,'Invalid cursor.');
   const author=url.searchParams.get('author') || '', following=url.searchParams.get('following')==='true';
   const posts=all(`SELECT p.* FROM posts p WHERE p.hidden=0 AND p.id<? AND (?='' OR p.user_id=?) AND (?=0 OR p.user_id=? OR EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=? AND f.followed_id=p.user_id)) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=p.user_id) OR (b.blocker_id=p.user_id AND b.blocked_id=?)) ORDER BY p.id DESC LIMIT 20`,before,author,author,following?1:0,user.id,user.id,user.id,user.id);
-  return {posts:posts.map(p=>postView(p,user.id)),nextCursor:posts.length===20?posts.at(-1).id:null};
+  return {posts:posts.filter(p=>!p.original_id || (()=>{const o=one('SELECT * FROM posts WHERE id=? AND hidden=0',p.original_id);return o && !blocked(user.id,o.user_id);})()).map(p=>postView(p,user.id)),nextCursor:posts.length===20?posts.at(-1).id:null};
  }
  if((m=/^\/api\/posts\/(\d+)(?:\/(like|comments|report))?$/.exec(path))) {
   const id=Number(m[1]),post=visiblePost(id,user.id);
@@ -186,7 +240,7 @@ async function api(req,url) {
  if(path==='/api/notifications' && method==='GET') return all(`SELECT n.*,u.username,u.display_name FROM notifications n JOIN users u ON u.id=n.actor_id LEFT JOIN posts p ON p.id=n.post_id WHERE n.user_id=? AND (n.post_id IS NULL OR p.hidden=0) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=n.actor_id) OR (b.blocker_id=n.actor_id AND b.blocked_id=?)) ORDER BY n.id DESC LIMIT 100`,user.id,user.id,user.id).map(n=>({id:n.id,kind:n.kind,username:n.username,displayName:n.display_name,postId:n.post_id,createdAt:n.created_at,seen:!!n.seen}));
  if(path==='/api/notifications/read' && method==='POST') {run('UPDATE notifications SET seen=1 WHERE user_id=?',user.id);return {ok:true};}
  if(path.startsWith('/api/admin/')) {
-  requireThat(!!adminEmail && user.email===adminEmail,403,'Administrator access required.');
+  requireThat(me(user).isAdmin,403,'Administrator access required.');
   if(path==='/api/admin/reports' && method==='GET') return all('SELECT r.*,p.body,u.username FROM reports r JOIN posts p ON p.id=r.post_id JOIN users u ON u.id=r.reporter_id WHERE r.resolved=0 ORDER BY r.id DESC LIMIT 100');
   if((m=/^\/api\/admin\/reports\/(\d+)$/.exec(path)) && method==='PATCH') {
    const input=await jsonBody(req), report=one('SELECT * FROM reports WHERE id=?',Number(m[1]));requireThat(report,404,'Report not found.');requireThat(typeof input.hidePost==='boolean',400,'hidePost must be true or false.');
@@ -213,9 +267,9 @@ export const server=createServer(async(req,res)=>{
   }
   requireThat(req.method==='GET' || req.method==='HEAD',405,'Method not allowed.');
   if(/^\/media\/[a-f0-9-]+\.(jpg|png|webp)$/.test(url.pathname)) {
-   const name=url.pathname.split('/').at(-1);
+   const viewer=auth(req);const name=url.pathname.split('/').at(-1);
    // Serve only media attached to a visible post. Unattached uploads are private staging files.
-   const media=one('SELECT u.* FROM uploads u JOIN posts p ON p.media_id=u.id WHERE u.filename=? AND p.hidden=0',name);
+   const media=one(`SELECT u.* FROM uploads u WHERE u.filename=? AND NOT EXISTS(SELECT 1 FROM blocks WHERE (blocker_id=? AND blocked_id=u.user_id) OR (blocker_id=u.user_id AND blocked_id=?)) AND (EXISTS(SELECT 1 FROM posts p WHERE p.media_id=u.id AND p.hidden=0) OR EXISTS(SELECT 1 FROM users a WHERE a.avatar_id=u.id))`,name,viewer.id,viewer.id);
    requireThat(media,404,'Image not found.');
    res.writeHead(200,{'Content-Type':media.mime,'Cache-Control':'no-store'});res.end(req.method==='HEAD'?undefined:readFileSync(resolve(dataDir,'media',name)));return;
   }
