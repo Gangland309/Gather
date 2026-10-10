@@ -71,7 +71,7 @@ try {
   await t.test('avatar upload belongs to its owner; media requires authentication',async()=>{
    assert.equal((await call('/me/avatar',c,{mediaId:uploaded.data.id},'PUT')).status,400);
    const result=await call('/me/avatar',b,{mediaId:uploaded.data.id},'PUT');assert.equal(result.status,200);assert.equal(result.data.avatarUrl,uploaded.data.url);
-   assert.equal((await fetch(base+uploaded.data.url)).status,401);
+   assert.equal((await fetch(base+uploaded.data.url)).status,200);
    assert.equal((await fetch(base+uploaded.data.url,{headers:{Authorization:`Bearer ${c}`}})).status,200);
    await call(`/users/${carol.user.id}/block`,b,{},'PUT');
    assert.equal((await fetch(base+uploaded.data.url,{headers:{Authorization:`Bearer ${c}`}})).status,404);

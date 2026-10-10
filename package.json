@@ -1,7 +1,7 @@
 {
   "name": "gather-platform",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "engines": {
     "node": ">=24.0.0"
   },
@@ -14,5 +14,8 @@
     "test": "node --test tests/*.test.mjs",
     "build:all": "npm --prefix mobile run build:all",
     "lint": "npm --prefix mobile run lint"
+  },
+  "dependencies": {
+    "livekit-server-sdk": "^2.19.1"
   }
 }

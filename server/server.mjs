@@ -1,3 +1,6 @@
+import { createVideo } from './video.mjs';
+import { createLive } from './live.mjs';
+import { createCommunity } from './community.mjs';
 import { createSocial } from './social.mjs';
 import { mailConfigured, sendAction } from './email.mjs';
 import { createServer } from 'node:http';
@@ -87,7 +90,9 @@ function auth(req) {
  return user;
 }
 function profile(user, viewer) {
- return { id:user.id, username:user.username, displayName:user.display_name, bio:user.bio, createdAt:user.created_at,
+ const allowed=community.canSee(user.id,viewer);
+
+ return { id:user.id, username:user.username, displayName:user.display_name, bio:allowed?user.bio:'', isPrivate:!!user.is_private, canViewPosts:allowed, socials:allowed?JSON.parse(user.socials):[], requestPending:!!one('SELECT 1 FROM follow_requests WHERE requester=? AND target=?',viewer,user.id), createdAt:user.created_at,
   followers:one('SELECT COUNT(*) n FROM follows WHERE followed_id=?',user.id).n,
   following:one('SELECT COUNT(*) n FROM follows WHERE follower_id=?',user.id).n,
   isFollowing:!!one('SELECT 1 FROM follows WHERE follower_id=? AND followed_id=?',viewer,user.id),
@@ -96,12 +101,12 @@ function profile(user, viewer) {
 }
 function me(user) { return {...profile(user,user.id), emailVerified:!!user.email_verified, verificationRequired, isAdmin:!!adminEmail && user.email===adminEmail && (!verificationRequired || !!user.email_verified)}; }
 function blocked(a,b) { return !!one('SELECT 1 FROM blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?)',a,b,b,a); }
-function visiblePost(id, viewer) { const post = one('SELECT * FROM posts WHERE id=? AND hidden=0',id); requireThat(post && !blocked(viewer,post.user_id) && (!post.original_id || (()=>{const original=one('SELECT * FROM posts WHERE id=? AND hidden=0',post.original_id);return original && !blocked(viewer,original.user_id);})()),404,'Post not found.'); return post; }
-function notify(target, actor, kind, postId=null) { if(target!==actor) run('INSERT INTO notifications(user_id,actor_id,kind,post_id,created_at) VALUES(?,?,?,?,?)',target,actor,kind,postId,now()); }
+function visiblePost(id, viewer) { const post = one('SELECT * FROM posts WHERE id=? AND hidden=0',id); requireThat(post && community.canPost(post,viewer) && (!post.original_id || (()=>{const original=one('SELECT * FROM posts WHERE id=? AND hidden=0',post.original_id);return original && community.canPost(original,viewer);})()),404,'Post not found.'); return post; }
+function notify(target, actor, kind, postId=null) {const prefs=JSON.parse(one('SELECT notification_prefs FROM users WHERE id=?',target)?.notification_prefs||'{}');const category=kind.startsWith('gathering')?'gatherings':kind.startsWith('live')?'live':kind.startsWith('message')?'messages':kind.startsWith('support')?'support':'social';if(prefs[category]===false)return; if(target!==actor) run('INSERT INTO notifications(user_id,actor_id,kind,post_id,created_at) VALUES(?,?,?,?,?)',target,actor,kind,postId,now()); }
 function postView(p,viewer) {
  const user = one('SELECT * FROM users WHERE id=?',p.user_id);
  const upload = p.media_id ? one('SELECT * FROM uploads WHERE id=?',p.media_id) : null;
- return { original:p.original_id?postView(visiblePost(p.original_id,viewer),viewer):null, id:p.id, body:p.body, createdAt:p.created_at, author:profile(user,viewer), mediaUrl:upload ? `/media/${upload.filename}` : null,
+ return { original:p.original_id?postView(visiblePost(p.original_id,viewer),viewer):null, id:p.id, videoId:p.video_id, audience:p.audience, groupId:p.group_id, pinned:!!p.pinned, body:p.body, createdAt:p.created_at, author:profile(user,viewer), mediaUrl:upload ? `/media/${upload.filename}` : null,
   likeCount:one('SELECT COUNT(*) n FROM likes l JOIN users u ON u.id=l.user_id WHERE l.post_id=? AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=?))',p.id,viewer,viewer).n,
   commentCount:one('SELECT COUNT(*) n FROM comments c WHERE c.post_id=? AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=c.user_id) OR (b.blocker_id=c.user_id AND b.blocked_id=?))',p.id,viewer,viewer).n,
   liked:!!one('SELECT 1 FROM likes WHERE user_id=? AND post_id=?',viewer,p.id) };
@@ -115,7 +120,10 @@ async function deliverAction(user,kind) {
  run('INSERT INTO email_actions VALUES(?,?,?,?)',key,user.id,kind,Date.now()+(kind==='verify'?24*3600000:30*60000));
  try {await sendAction(user.email,kind,token);return true;}catch {run('DELETE FROM email_actions WHERE hash=?',key);return false;}
 }
-const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me});
+const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me,notify});
+const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify});
+const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost});
+const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction});
 async function api(req,url) {
  const method = req.method, path = url.pathname;
  if(path==='/api/config' && method==='GET') return {supportEmail:process.env.SUPPORT_EMAIL||''};
@@ -159,7 +167,7 @@ async function api(req,url) {
    const displayName=textField(input.displayName,'Display name',60,1);
    const salt=randomBytes(16).toString('hex');
    const passwordHash=(await scrypt(password,salt,64)).toString('hex');
-   try { const id=randomUUID(); run('INSERT INTO users(id,email,username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?,?,?)',id,email,username,displayName,passwordHash,salt,now()); run('UPDATE users SET rules_accepted_at=? WHERE id=?',now(),id);user=one('SELECT * FROM users WHERE id=?',id); }
+   try { const id=randomUUID(); run('INSERT INTO users(id,email,username,display_name,password_hash,salt,created_at) VALUES(?,?,?,?,?,?,?)',id,email,username,displayName,passwordHash,salt,now()); run('UPDATE users SET rules_accepted_at=?,is_private=? WHERE id=?',now(),input.isPrivate===true?1:0,id);community.official({id});user=one('SELECT * FROM users WHERE id=?',id); }
    catch(e) { if(String(e.message).includes('UNIQUE')) throw new HttpError(409,'Email or username is already in use.'); throw e; }
   } else {
    user=one('SELECT * FROM users WHERE email=?',email);
@@ -173,12 +181,22 @@ async function api(req,url) {
   let emailSent; if(path.endsWith('register') && verificationRequired) emailSent=await deliverAction(user,'verify');
   return {token,user:me(user),emailSent};
  }
+ if(path.startsWith('/api/live')&&((method==='GET')||(method==='POST'&&path.endsWith('/token')))){let optional=null;if(req.headers.authorization)optional=auth(req);limit(req,'live-view',100,60000,optional?.id);const result=await live.route(req,url,optional);if(result!==undefined)return result;}
+ if(path.startsWith('/api/public/')&&method==='GET'){const parts=path.split('/'),id=parts[4];
+  if(parts[3]==='videos')return video.route(req,new URL(`/api/videos/${id}`,url),{id:''});
+  if(parts[3]==='posts')return postView(visiblePost(Number(id),''),'');
+  if(parts[3]==='profiles'){const u=one('SELECT * FROM users WHERE id=?',id);requireThat(u,404,'Profile not found.');if(parts[5]==='posts')return all('SELECT * FROM posts WHERE user_id=? AND hidden=0 AND group_id IS NULL ORDER BY id DESC LIMIT 50',id).filter(p=>{try{visiblePost(p.id,'');return true;}catch{return false;}}).map(p=>postView(p,''));return profile(u,'');}}
  const user=auth(req);
  if(path==='/api/auth/resend-verification' && method==='POST') {limit(req,'verification',10,15*60000);if(!user.email_verified) {const sent=await deliverAction(user,'verify');requireThat(sent,503,'Email could not be sent. Wait a minute and try again.');}return {ok:true};}
  if(method!=='GET' && !['/api/auth/logout','/api/support'].includes(path) && verificationRequired) requireThat(user.email_verified,403,'Verify your email before posting or interacting.');
  if(method!=='GET') limit(req,'write',120,60000,user.id);
+ if(path==='/api/contacts'&&method==='POST')limit(req,'contacts',5,86400000,user.id);
+ const videoResult=await video.route(req,url,user);if(videoResult!==undefined)return videoResult;
+ const liveResult=await live.route(req,url,user);if(liveResult!==undefined)return liveResult;
+ const communityResult=await community.route(req,url,user);if(communityResult!==undefined)return communityResult;
  const socialResult=await social(req,url,user);if(socialResult!==undefined)return socialResult;
  if(path==='/api/auth/logout' && method==='POST') { run('DELETE FROM sessions WHERE hash=?',hash(req.headers.authorization.slice(7))); return {ok:true}; }
+ if(path==='/api/account/password'&&method==='POST'){const input=await jsonBody(req);requireThat(typeof input.currentPassword==='string'&&input.currentPassword.length<=128,400,'Enter your current password.');requireThat(typeof input.newPassword==='string'&&input.newPassword.length>=12&&input.newPassword.length<=128,400,'New password must contain 12–128 characters.');const candidate=await scrypt(input.currentPassword,user.salt,64);requireThat(timingSafeEqual(candidate,Buffer.from(user.password_hash,'hex')),403,'Current password is incorrect.');const salt=randomBytes(16).toString('hex'),value=(await scrypt(input.newPassword,salt,64)).toString('hex');transaction(()=>{run('UPDATE users SET password_hash=?,salt=? WHERE id=?',value,salt,user.id);run('DELETE FROM sessions WHERE user_id=? AND hash<>?',user.id,hash(req.headers.authorization.slice(7)));});return {ok:true};}
  if(path==='/api/me' && method==='GET') return me(user);
  if(path==='/api/me' && method==='PATCH') { const input=await jsonBody(req); run('UPDATE users SET display_name=?,bio=? WHERE id=?',textField(input.displayName,'Display name',60,1),textField(input.bio,'Bio',300),user.id); return me(one('SELECT * FROM users WHERE id=?',user.id)); }
  if(path==='/api/users' && method==='GET') {
@@ -195,8 +213,8 @@ async function api(req,url) {
   if(m[2]==='block' && method==='DELETE') {run('DELETE FROM blocks WHERE blocker_id=? AND blocked_id=?',user.id,target.id);return {ok:true};}
   if(m[2]==='follow') {
    requireThat(!blocked(user.id,target.id),404,'User not found.');
-   if(method==='PUT') {transaction(()=>{if(run('INSERT OR IGNORE INTO follows VALUES(?,?)',user.id,target.id).changes) notify(target.id,user.id,'follow');});return profile(target,user.id);}
-   if(method==='DELETE') {run('DELETE FROM follows WHERE follower_id=? AND followed_id=?',user.id,target.id);return profile(target,user.id);}
+   if(method==='PUT') {transaction(()=>{if(target.is_private&&!one('SELECT 1 FROM follows WHERE follower_id=? AND followed_id=?',user.id,target.id)){if(run('INSERT OR IGNORE INTO follow_requests VALUES(?,?,?)',user.id,target.id,now()).changes)notify(target.id,user.id,'follow_request');}else if(run('INSERT OR IGNORE INTO follows VALUES(?,?)',user.id,target.id).changes)notify(target.id,user.id,'follow');});return profile(target,user.id);}
+   if(method==='DELETE') {run('DELETE FROM follow_requests WHERE requester=? AND target=?',user.id,target.id);run('DELETE FROM follows WHERE follower_id=? AND followed_id=?',user.id,target.id);return profile(target,user.id);}
   }
  }
  if(path==='/api/uploads' && method==='POST') {
@@ -211,22 +229,28 @@ async function api(req,url) {
   requireThat(jpg||png||webp,400,'Upload a JPEG, PNG, or WebP image.');
   const id=randomUUID(), extension=jpg?'jpg':png?'png':'webp', filename=`${id}.${extension}`, mime=`image/${jpg?'jpeg':extension}`;
   writeFileSync(resolve(dataDir,'media',filename),data,{flag:'wx'});
-  run('INSERT INTO uploads VALUES(?,?,?,?)',id,user.id,filename,mime);
+  run('INSERT INTO uploads(id,user_id,filename,mime) VALUES(?,?,?,?)',id,user.id,filename,mime);
   return {id,url:`/media/${filename}`};
  }
  if(path==='/api/posts' && method==='POST') {
-  const input=await jsonBody(req),body=textField(input.body,'Post',2000),mediaId=input.mediaId??null;
-  requireThat(body || mediaId,400,'Write something or add a photo.');
+  const input=await jsonBody(req),body=textField(input.body,'Post',2000),mediaId=input.mediaId??null,videoId=input.videoId??null;
+  requireThat(body || mediaId || videoId,400,'Write something or add a photo.');
   if(mediaId) requireThat(typeof mediaId==='string' && one('SELECT 1 FROM uploads WHERE id=? AND user_id=?',mediaId,user.id),400,'Photo not found.');
-  const id=Number(run('INSERT INTO posts(user_id,body,media_id,created_at) VALUES(?,?,?,?)',user.id,body,mediaId,now()).lastInsertRowid);
+  requireThat(!(mediaId&&videoId),400,'Choose one photo or video per post.');if(videoId)requireThat(one("SELECT 1 FROM videos WHERE id=? AND user_id=? AND status='ready'",videoId,user.id),400,'Video is not ready.');
+  const audience=input.audience??'followers',groupId=input.groupId??null;
+  requireThat(['self','friends','public','followers','gathering'].includes(audience),400,'Choose a post audience.');
+  if(audience==='public'&&user.is_private)requireThat(input.confirmPublic===true,400,'Confirm this post will be visible to everyone.');
+  if(audience==='gathering'){const g=community.group(groupId,user.id,true);requireThat(g.member,403,'Join before posting.');}else requireThat(groupId===null,400,'Select Gathering audience for group posts.');
+  const id=Number(run('INSERT INTO posts(user_id,body,media_id,created_at,audience,group_id,video_id) VALUES(?,?,?,?,?,?,?)',user.id,body,mediaId,now(),audience,groupId,videoId).lastInsertRowid);
+  if(groupId)for(const member of all("SELECT user_id FROM gathering_members WHERE group_id=? AND status='approved'",groupId))if(!blocked(member.user_id,user.id))notify(member.user_id,user.id,'gathering_post',id);
   return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);
  }
  if(path==='/api/posts' && method==='GET') {
   const before=Number(url.searchParams.get('before') || Number.MAX_SAFE_INTEGER);
   requireThat(Number.isSafeInteger(before) && before>0,400,'Invalid cursor.');
   const author=url.searchParams.get('author') || '', following=url.searchParams.get('following')==='true';
-  const posts=all(`SELECT p.* FROM posts p WHERE p.hidden=0 AND p.id<? AND (?='' OR p.user_id=?) AND (?=0 OR p.user_id=? OR EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=? AND f.followed_id=p.user_id)) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=p.user_id) OR (b.blocker_id=p.user_id AND b.blocked_id=?)) ORDER BY p.id DESC LIMIT 20`,before,author,author,following?1:0,user.id,user.id,user.id,user.id);
-  return {posts:posts.filter(p=>!p.original_id || (()=>{const o=one('SELECT * FROM posts WHERE id=? AND hidden=0',p.original_id);return o && !blocked(user.id,o.user_id);})()).map(p=>postView(p,user.id)),nextCursor:posts.length===20?posts.at(-1).id:null};
+  const posts=all(`SELECT p.* FROM posts p WHERE p.hidden=0 AND p.group_id IS NULL AND p.id<? AND (?='' OR p.user_id=?) AND (?=0 OR p.user_id=? OR EXISTS(SELECT 1 FROM follows f WHERE f.follower_id=? AND f.followed_id=p.user_id)) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=p.user_id) OR (b.blocker_id=p.user_id AND b.blocked_id=?)) ORDER BY p.id DESC LIMIT 20`,before,author,author,following?1:0,user.id,user.id,user.id,user.id);
+  return {posts:posts.filter(p=>community.canPost(p,user.id)).filter(p=>!p.original_id || (()=>{const o=one('SELECT * FROM posts WHERE id=? AND hidden=0',p.original_id);return o && community.canPost(o,user.id);})()).map(p=>postView(p,user.id)),nextCursor:posts.length===20?posts.at(-1).id:null};
  }
  if((m=/^\/api\/posts\/(\d+)(?:\/(like|comments|report))?$/.exec(path))) {
   const id=Number(m[1]),post=visiblePost(id,user.id);
@@ -267,10 +291,11 @@ export const server=createServer(async(req,res)=>{
   }
   requireThat(req.method==='GET' || req.method==='HEAD',405,'Method not allowed.');
   if(/^\/media\/[a-f0-9-]+\.(jpg|png|webp)$/.test(url.pathname)) {
-   const viewer=auth(req);const name=url.pathname.split('/').at(-1);
-   // Serve only media attached to a visible post. Unattached uploads are private staging files.
-   const media=one(`SELECT u.* FROM uploads u WHERE u.filename=? AND NOT EXISTS(SELECT 1 FROM blocks WHERE (blocker_id=? AND blocked_id=u.user_id) OR (blocker_id=u.user_id AND blocked_id=?)) AND (EXISTS(SELECT 1 FROM posts p WHERE p.media_id=u.id AND p.hidden=0) OR EXISTS(SELECT 1 FROM users a WHERE a.avatar_id=u.id))`,name,viewer.id,viewer.id);
-   requireThat(media,404,'Image not found.');
+   const viewer=req.headers.authorization?auth(req):{id:''};const name=url.pathname.split('/').at(-1);
+   const media=one('SELECT * FROM uploads WHERE filename=?',name);
+   requireThat(media&&!blocked(media.user_id,viewer.id),404,'Image not found.');
+   const allowed=media.user_id===viewer.id || all('SELECT * FROM posts WHERE media_id=? AND hidden=0',media.id).some(p=>{try{visiblePost(p.id,viewer.id);return true;}catch{return false;}}) || all('SELECT * FROM users WHERE avatar_id=?',media.id).some(u=>community.canSee(u.id,viewer.id));
+   requireThat(allowed,404,'Image not found.');
    res.writeHead(200,{'Content-Type':media.mime,'Cache-Control':'no-store'});res.end(req.method==='HEAD'?undefined:readFileSync(resolve(dataDir,'media',name)));return;
   }
   const file=resolve(webDir,`.${decodeURIComponent(url.pathname==='/'?'/index.html':url.pathname)}`);

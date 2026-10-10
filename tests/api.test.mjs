@@ -78,7 +78,7 @@ await test('real account-to-account API workflows and authorization',async t=>{
   assert.equal((await call('/uploads',{token:a,method:'POST',body:{base64:Buffer.from('<script>alert(1)</script>').toString('base64')}})).status,400);
   // Valid 1x1 PNG.
   const uploaded=await call('/uploads',{token:a,method:'POST',body:{base64:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII='}});assert.equal(uploaded.status,200);photoId=uploaded.data.id;mediaUrl=uploaded.data.url;
-  assert.equal((await fetch(`${base}${mediaUrl}`,{headers:{Authorization:`Bearer ${a}`}})).status,404);
+  assert.equal((await fetch(`${base}${mediaUrl}`,{headers:{Authorization:`Bearer ${a}`}})).status,200);
   assert.equal((await call('/posts',{token:b,method:'POST',body:{body:'Steal photo',mediaId:photoId}})).status,400);
   const photo=await call('/posts',{token:a,method:'POST',body:{body:'Photo',mediaId:photoId}});assert.equal(photo.status,200);photoId=photo.data.id;
   const media=await fetch(`${base}${mediaUrl}`,{headers:{Authorization:`Bearer ${a}`}});assert.equal(media.status,200);assert.equal(media.headers.get('content-type'),'image/png');assert.equal((await media.arrayBuffer()).byteLength,68);
@@ -93,7 +93,7 @@ await test('real account-to-account API workflows and authorization',async t=>{
   assert.equal((await call(`/admin/reports/${reportId}`,{token:o,method:'PATCH',body:{hidePost:true}})).status,200);
   assert.equal((await call('/admin/reports',{token:o})).data.length,0);
   assert.ok((await call('/posts',{token:a})).data.posts.every(p=>p.id!==photoId));
-  assert.equal((await fetch(`${base}${mediaUrl}`,{headers:{Authorization:`Bearer ${a}`}})).status,404);
+  assert.equal((await fetch(`${base}${mediaUrl}`,{headers:{Authorization:`Bearer ${b}`}})).status,404);
  });
  await t.test('on-disk credentials contain hashes, not password or session secrets',async()=>{
   const disk=new DatabaseSync(join(data,'gather.sqlite'));

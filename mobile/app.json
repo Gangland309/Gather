@@ -5,17 +5,15 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.example.gather"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.example.gather"
@@ -29,12 +27,19 @@
         "expo-image-picker",
         {
           "photosPermission": "Gather uses your photos when you attach an image to a post.",
-          "cameraPermission": false,
-          "microphonePermission": false
+          "cameraPermission": "Gather uses your camera when you take photos, record videos, or go live.",
+          "microphonePermission": "Gather uses your microphone when you record videos with sound or join a live broadcast."
         }
       ],
       "expo-secure-store",
-      "expo-router"
+      "expo-router",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "With your permission, Gather checks selected email contacts for opted-in members."
+        }
+      ],
+      "expo-video"
     ],
     "scheme": "gather-dev"
   }
