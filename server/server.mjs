@@ -1,3 +1,4 @@
+import {createChatAssistant} from './chat-assistant.mjs';
 import {createLinkPreviews} from './link-previews.mjs';
 import {createStories} from './stories.mjs';
 import {createMentions} from './mentions.mjs';
@@ -142,6 +143,7 @@ const gcRoute=createGC({db,one,all,run,now,jsonBody,requireThat,textField,transa
 const rooms=createRooms({db,one,all,run,now,jsonBody,requireThat,textField,blocked,notify,transaction,profile},live);
 export const discord=createDiscord({db,one,all,run,hash,jsonBody,requireThat,transaction,blocked,me});
 community.ensureOfficial();
+const chatAssistant=createChatAssistant({db,one,run,transaction,jsonBody,requireThat});
 async function api(req,url) {
  const method = req.method, path = url.pathname;
  if(path==='/api/config' && method==='GET') return {publicOrigin:process.env.PUBLIC_ORIGIN||process.env.RENDER_EXTERNAL_URL||'',supportEmail:process.env.SUPPORT_EMAIL||'',inviteRequired:process.env.INVITE_ONLY==='true'};
@@ -215,6 +217,8 @@ async function api(req,url) {
  if(method!=='GET'){if(path==='/api/posts')limit(req,'new-post',30,600000,user.id);if(path.endsWith('/chat'))limit(req,'live-chat',30,60000,user.id);if(path.endsWith('/comments'))limit(req,'new-comment',30,600000,user.id);if(path==='/api/support'||path==='/api/reports'||path.endsWith('/report'))limit(req,'reports-support',10,3600000,user.id);}
  if(path==='/api/discord/connect'&&method==='POST')limit(req,'discord-connect',10,600000,user.id);
  if(method==='GET'&&/^\/api\/posts\/\d+\/link-previews$/.test(path)){const post=visiblePost(Number(path.split('/')[3]),user.id);limit(req,'link-previews',100,60000,user.id);return {previews:await linkPreviews(post.body)};}
+ if(path==='/api/assistant/chat')limit(req,'assistant-chat',4,60000,user.id);
+ const assistantResult=await chatAssistant.route(req,url,user);if(assistantResult!==undefined)return assistantResult;
  const discordResult=await discord.route(req,url,user);if(discordResult!==undefined)return discordResult;
  const pilotResult=await pilot.route(req,url,user);if(pilotResult!==undefined)return pilotResult;
  const videoResult=await video.route(req,url,user);if(videoResult!==undefined)return videoResult;

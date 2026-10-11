@@ -1,3 +1,11 @@
+# Latest release: Gather v0.9.25
+
+Fullscreen / Exit fullscreen controls for lives, podcasts and Gathering voice parties, with browser fullscreen and an expanded-view fallback. Includes all previous updates. Deploy server and client together using the steps below. Refresh Gather after deployment, join a room and press Fullscreen. Speaker/shared-screen enlargement remains per viewer.
+
+# Latest release: Gather v0.9.24
+
+Gather Assistant plus desktop/mobile top shortcuts for Party with Friends, Podcast, Go Live and Chat Assistant. Includes previous updates. Deploy server and client together using the instructions below. Follow ASSISTANT-SETUP.md to enable AI replies in Render; it needs a server-only OpenAI API key and API billing.
+
 # Latest release: Gather v0.9.23
 
 Gathering voice parties now support screen sharing in supported desktop browsers. See CHANGELOG-v0.9.23.md. Includes all previous updates.

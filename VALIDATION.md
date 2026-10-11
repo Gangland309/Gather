@@ -1,3 +1,15 @@
+# Latest validation: Gather v0.9.25
+
+133 automated tests passed. TypeScript and Expo lint passed. New fullscreen helper tests cover native entry/exit, fullscreenchange handling, denied/unsupported native fallback, Escape behavior, focus restoration and listener cleanup.
+
+Real-browser fullscreen, dialog layout, screen-share rendering and physical-phone behavior have not been visually tested. No deployment was performed. Web, iOS and Android bundle exports passed.
+
+# Latest validation: Gather v0.9.24
+
+130 automated tests passed. New tests cover disabled setup, sign-in/verification, bounded histories, rejected system messages, safe provider failures, persistent usage budgets, Responses request structure, model selection and response parsing with provider fixtures.
+
+Real OpenAI requests were not made. No API key was supplied for a live-provider check. UI/browser/phone QA and production deployment have not been performed. Final TypeScript and Expo lint checks passed. Web, iOS and Android bundle exports passed.
+
 # Latest validation: Gather v0.9.23
 
 126 automated tests passed. Voice-party authorization tests now verify microphone, screen_share and screen_share_audio grants, camera exclusion and approved-member access checks. Final TypeScript and Expo lint checks passed. Web, iOS and Android bundle exports passed.
