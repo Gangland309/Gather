@@ -1,3 +1,9 @@
+# Latest release: Gather v0.9.27
+
+Chat Assistant Send now submits a nonempty message even if the initial connection check failed or was stale. Server setup, email verification and provider errors are shown; failed questions remain available to retry. Retry connection refreshes assistant status. Server authorization and opt-in remain enforced. Feed videos and Sparks pause after scrolling offscreen on web and native; returning does not automatically restart them. Tap the video picture once for fullscreen; double tap within 280 ms to like the post (never unlike). Bottom player controls remain accessible. Web uses an expanded fullscreen fallback if browser fullscreen is denied. Includes all v0.9.26 updates.
+
+Deploy server and client together, preserving your database and Render environment. Follow ASSISTANT-SETUP.md to enable AI replies.
+
 # Latest release: Gather v0.9.26
 
 Top search for users, content keywords and exact #hashtags on desktop/mobile, plus Add Friends dropdown with incoming request acceptance/decline. Deploy server and client together. Search shows only posts the signed-in member can access. Includes prior updates. Browser and phone interaction testing remains.

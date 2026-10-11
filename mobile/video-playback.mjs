@@ -45,3 +45,13 @@ export function startVideoAutoplay(video,onBlocked=()=>{}){
  video.addEventListener('loadeddata',attempt);video.addEventListener('canplay',attempt);attempt();
  return()=>{disposed=true;video.removeEventListener('loadeddata',attempt);video.removeEventListener('canplay',attempt);};
 }
+
+// Stop offscreen playback, including late autoplay promises and manual controls.
+export function pauseOffscreenVideo(video,Observer=globalThis.IntersectionObserver){
+ if(!Observer)return ()=>{};
+ let visible=true;
+ const guard=()=>{if(!visible)video.pause();};
+ const observer=new Observer(entries=>{for(const entry of entries)if(entry.target===video){visible=entry.isIntersecting&&entry.intersectionRatio>0;guard();}},{threshold:0});
+ observer.observe(video);video.addEventListener('play',guard);
+ return ()=>{observer.disconnect();video.removeEventListener('play',guard);};
+}

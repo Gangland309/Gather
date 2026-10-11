@@ -11,3 +11,16 @@ test('Responses request preserves GPT-5 model choice, disables response storage 
  try{const result=await assistant.route({method:'POST',body:{message:'Write a caption'}},new URL('http://localhost/api/assistant/chat'),{id:'test-user',email_verified:1,email:'private-email'});assert.equal(result.reply,'Your next adventure starts here.');assert.equal(requests,1);globalThis.fetch=async()=>Response.json({status:'incomplete',output:[]});await assert.rejects(()=>assistant.route({method:'POST',body:{message:'Try again'}},new URL('http://localhost/api/assistant/chat'),{id:'test-user',email_verified:1}),{status:502});}
  finally{globalThis.fetch=original;for(const [name,value] of [['OPENAI_API_KEY',oldKey],['CHAT_ASSISTANT_ENABLED',oldEnabled],['CHAT_ASSISTANT_MODEL',oldModel]]){if(value===undefined)delete process.env[name];else process.env[name]=value;}db.close();}
 });
+test('assistant setup can change after an initial disabled check; failed submissions remain server-gated',async()=>{
+ const db=new DatabaseSync(':memory:'),oldKey=process.env.OPENAI_API_KEY,oldEnabled=process.env.CHAT_ASSISTANT_ENABLED;
+ const assistant=createChatAssistant({db,requireThat:(ok,status,message)=>{if(!ok)throw Object.assign(new Error(message),{status});}});
+ const user={id:'member',email_verified:1},config=new URL('http://localhost/api/assistant/config');
+ try{
+  delete process.env.OPENAI_API_KEY;process.env.CHAT_ASSISTANT_ENABLED='false';
+  assert.deepEqual(await assistant.route({method:'GET'},config,user),{enabled:false});
+  await assert.rejects(()=>assistant.route({method:'POST'},new URL('http://localhost/api/assistant/chat'),user),e=>e.status===503&&e.message.includes('CHAT_ASSISTANT_ENABLED=true')&&e.message.includes('ASSISTANT-SETUP.md'));
+  process.env.CHAT_ASSISTANT_ENABLED='true';assert.deepEqual(await assistant.route({method:'GET'},config,user),{enabled:false});
+  process.env.OPENAI_API_KEY='test-secret';assert.deepEqual(await assistant.route({method:'GET'},config,user),{enabled:true});
+  await assert.rejects(()=>assistant.route({method:'GET'},config,null),{status:401});
+ }finally{for(const [name,value] of [['OPENAI_API_KEY',oldKey],['CHAT_ASSISTANT_ENABLED',oldEnabled]]){if(value===undefined)delete process.env[name];else process.env[name]=value;}db.close();}
+});

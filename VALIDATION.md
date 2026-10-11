@@ -1,3 +1,9 @@
+# Latest validation: Gather v0.9.27
+
+137 automated tests passed, including changing assistant setup, server authorization, offscreen/late playback and single/double tap arbitration. TypeScript and Expo lint passed. Web, iOS and Android bundle exports passed.
+
+No production deployment, live OpenAI requests, browser interaction QA or real-phone testing performed. Native scroll visibility is checked every 250 ms; fullscreen preserves playback. Test fullscreen, double-tap likes and scrolling on your devices after deployment.
+
 # Latest validation: Gather v0.9.25
 
 133 automated tests passed. TypeScript and Expo lint passed. New fullscreen helper tests cover native entry/exit, fullscreenchange handling, denied/unsupported native fallback, Escape behavior, focus restoration and listener cleanup.
