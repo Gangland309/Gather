@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useEffect,useRef,useState} from 'react';
-import {Pressable,View} from 'react-native';
+import {Pressable} from 'react-native';
 import {useTheme,ThemeText as Text,ThemeInput as Input} from './Theme';
 import type {ImagePickerAsset} from 'expo-image-picker';
 import {effectPixels,type CameraFilter} from './camera-effects';

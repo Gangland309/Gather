@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useEffect,useState} from 'react';
-import {View,Pressable} from 'react-native';
+import {Pressable} from 'react-native';
 import {Room,Track,LocalAudioTrack} from 'livekit-client';
 import {useTheme,ThemeText as Text} from './Theme';
 import {readAudioPreferences,saveAudioPreferences,captureAudioOptions,type AudioPreferences} from './audio-preferences';

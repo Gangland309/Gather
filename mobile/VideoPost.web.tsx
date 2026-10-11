@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useEffect,useRef,useState} from 'react';
-import {View,Pressable,ActivityIndicator} from 'react-native';
+import {Pressable,ActivityIndicator} from 'react-native';
 import Hls from 'hls.js';
 import {ThemeText as Text} from './Theme';
 type Video={url:string;thumbnail:string;captionsRequested?:boolean};

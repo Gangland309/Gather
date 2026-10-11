@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useState} from 'react';
-import {View,Pressable,Platform} from 'react-native';
+import {Pressable,Platform} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {UploadProgress} from './UploadProgress';
 import {uploadVideo,videoSize} from './uploadVideo';

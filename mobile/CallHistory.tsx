@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useCallback,useEffect,useState} from 'react';
-import {View,Pressable} from 'react-native';
+import {Pressable} from 'react-native';
 import {useTheme,ThemeText as Text} from './Theme';
 import {ProfileLink} from './ProfileLink';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;

@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useEffect,useRef,useState} from 'react';
-import {Pressable,ScrollView,View} from 'react-native';
+import {Pressable,ScrollView} from 'react-native';
 import {ThemeInput as Input,ThemeText as Text,useTheme} from './Theme';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;
 type Run={id:string;role:string;status:string;body:string|null;postId:number|null;draftId:number|null;error:string;startedAt:number};

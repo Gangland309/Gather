@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useContext,useEffect,useState} from 'react';
-import {Linking,Pressable,View,type TextProps} from 'react-native';
+import {Linking,Pressable,type TextProps} from 'react-native';
 import {ProfileNavigation} from './ProfileLink';
 import {ThemeText as Text,useTheme} from './Theme';
 import {mentionTokens} from './mention-tokens.mjs';

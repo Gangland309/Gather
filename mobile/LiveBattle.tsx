@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useEffect,useRef,useState} from 'react';
-import {Pressable,ScrollView,View} from 'react-native';
+import {Pressable,ScrollView} from 'react-native';
 import {ThemeText as Text,useTheme} from './Theme';
 import type {LiveBattle,LiveGiftFeed} from './LiveTypes';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;

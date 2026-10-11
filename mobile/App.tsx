@@ -1,3 +1,4 @@
+import {ThemeView as View} from './Theme';
 import {Stories} from './Stories';
 import {GatheringMap} from './GatheringMap';
 import {MentionText,MentionSuggestions,type Mention} from './Mentions';
@@ -41,7 +42,7 @@ import type {LiveConnection,LiveComment} from './LiveTypes';
 import { CommunityPanel, BioLinks } from './Community';
 import { Policy } from './Policies';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, AppState, ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { PanResponder, AppState, ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';

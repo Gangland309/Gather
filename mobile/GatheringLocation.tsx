@@ -1,6 +1,7 @@
+import {ThemeView as View} from './Theme';
 import {SharedLocationMap} from './GatheringMap';
 import React,{useEffect,useState} from 'react';
-import {View,Pressable,Linking,Platform} from 'react-native';
+import {Pressable,Linking,Platform} from 'react-native';
 import * as Location from 'expo-location';
 import {useTheme,ThemeText as Text} from './Theme';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;

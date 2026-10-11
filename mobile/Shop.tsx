@@ -1,3 +1,4 @@
+import {ThemeView as View} from './Theme';
 import {ShareActions} from './ShareActions';
 import {MarketplacePost} from './MarketplacePost';
 import {ProfileLink} from './ProfileLink';
@@ -6,7 +7,7 @@ import {ShopVideoUpload} from './ShopVideoUpload';
 import {VideoPost} from './VideoPost';
 import * as ImagePicker from 'expo-image-picker';
 import React,{useEffect,useState} from 'react';
-import {View,Pressable} from 'react-native';
+import {Pressable} from 'react-native';
 import {useTheme,ThemeText as Text,ThemeInput as TextInput} from './Theme';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;
 type Product={id:number;title:string;description:string;kind:string;price_gc:number;stock:number;status:string;seller_id:string;seller:string;sellerUsername?:string;quantity?:number;mediaUrl?:string|null;photos?:{id:string;url:string}[];videoId?:string|null};

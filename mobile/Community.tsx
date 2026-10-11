@@ -1,3 +1,4 @@
+import {ThemeView as View} from './Theme';
 import {FanClubPerks,type FanPerk} from './FanClubPerks';
 import {MentionText,MentionSuggestions,type Mention} from './Mentions';
 import {ProfileLink} from './ProfileLink';
@@ -9,7 +10,7 @@ import {DiscordSettings} from './Discord';
 import {useTheme,ThemeText as Text,ThemeInput as TextInput} from './Theme';
 import {VideoPost} from './VideoPost';
 import React, {useCallback,useEffect,useState} from 'react';
-import {Linking,Platform,Share,View,Pressable,ScrollView} from 'react-native';
+import {Linking,Platform,Share,Pressable,ScrollView} from 'react-native';
 import * as Contacts from 'expo-contacts/legacy';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;
 type Member={isFriend?:boolean;friendRequestPending?:boolean;id:string;username:string;displayName:string;status?:string;role?:string};

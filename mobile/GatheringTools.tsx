@@ -1,6 +1,7 @@
+import {ThemeView as View} from './Theme';
 import {ProfileLink} from './ProfileLink';
 import React,{useEffect,useState} from 'react';
-import {Platform,Pressable,View} from 'react-native';
+import {Platform,Pressable} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {useTheme,ThemeText as Text,ThemeInput as Input} from './Theme';
 import {setEventAlarm,cancelEventAlarm} from './EventAlarm';

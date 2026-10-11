@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useEffect,useRef,useState} from 'react';
-import {Animated,Pressable,View} from 'react-native';
+import {Animated,Pressable} from 'react-native';
 import {ThemeText as Text,useTheme} from './Theme';
 type Gift={id:string;name:string;symbol:string;priceGC:number;description:string;category:string;animation?:string};
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;

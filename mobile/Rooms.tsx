@@ -1,6 +1,7 @@
+import {ThemeView as View} from './Theme';
 import {ProfileLink} from './ProfileLink';
 import React,{useEffect,useRef,useState} from 'react';
-import {View,Pressable} from 'react-native';
+import {Pressable} from 'react-native';
 import {useTheme,ThemeText as Text,ThemeInput as Input} from './Theme';
 import LiveTransport from './LiveTransport';
 import type {LiveConnection} from './LiveTypes';

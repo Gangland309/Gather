@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
-import {Image,Modal,Platform,Pressable,ScrollView,View} from 'react-native';
+import {Image,Modal,Platform,Pressable,ScrollView} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {useTheme,ThemeText as Text,ThemeInput as TextInput} from './Theme';
 import {VideoPost} from './VideoPost';

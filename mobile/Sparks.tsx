@@ -1,5 +1,6 @@
+import {ThemeView as View} from './Theme';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
-import {View,FlatList,Pressable,Modal,ScrollView,KeyboardAvoidingView,Platform,ActivityIndicator} from 'react-native';
+import {FlatList,Pressable,Modal,ScrollView,KeyboardAvoidingView,Platform,ActivityIndicator} from 'react-native';
 import {useTheme,ThemeText as Text,ThemeInput as TextInput} from './Theme';
 import {VideoPost} from './VideoPost';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;
