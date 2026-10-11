@@ -1,3 +1,15 @@
+# Latest release: Gather v0.9.22
+
+Host desktop recording controls, timer, local download and a shared recording notice. See CHANGELOG-v0.9.22.md. Includes v0.9.21 features. Deploy server and client together using the steps below; keep the existing Render database, persistent disk and environment variables.
+
+To record: open the live as host on desktop, inform speakers, check the recording confirmation, select Record live, choose the Gather tab with Share tab audio, then Stop recording and Download recording. Use Enable sound and headphones to hear guests while recording. Keep the tab open. Save each clip before recording another. Browser/phone compatibility is detected at runtime; phone-native and cloud recording are not included.
+
+# Latest release: Gather v0.9.21
+
+Includes active live users for battle invitations, automatic read status without deleting notifications, desktop Spark autoplay fallback, and admin-only bot controls. See CHANGELOG-v0.9.21.md and MUX-PLAYER-SETUP.md.
+
+Deploy both the server and client using the installation steps below. Keep Render environment variables, persistent disk and the existing database. Do not replace production data with a blank database. After deployment refresh the browser and test with two accounts.
+
 # Gather v0.9.20
 
 Original purple-and-lime colors and logo restored; current features preserved. See CHANGELOG-v0.9.20.md.

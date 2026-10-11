@@ -202,7 +202,7 @@ async function api(req,url) {
   return {token,user:me(user),emailSent};
  }
  if(path==='/api/discord/callback'&&method==='GET'){limit(req,'discord-callback',30,60000);return discord.callback(url);}
- if(path.startsWith('/api/live')&&((method==='GET')||(method==='POST'&&(path.endsWith('/token')||path.endsWith('/end-browser')||path.endsWith('/thumbnail'))))){let optional=null;if(req.headers.authorization)optional=auth(req);limit(req,'live-view',optional?300:1200,60000,optional?.id);const result=await live.route(req,url,optional);if(result!==undefined)return result;}
+ if(path.startsWith('/api/live')&&((method==='GET')||(method==='POST'&&(path.endsWith('/token')||path.endsWith('/end-browser')||path.endsWith('/thumbnail')||path.endsWith('/recording'))))){let optional=null;if(req.headers.authorization)optional=auth(req);limit(req,'live-view',optional?300:1200,60000,optional?.id);const result=await live.route(req,url,optional);if(result!==undefined)return result;}
  if(path.startsWith('/api/public/')&&method==='GET'){const parts=path.split('/'),id=parts[4];
   if(parts[3]==='videos')return video.route(req,new URL(`/api/videos/${id}`,url),{id:''});
   if(parts[3]==='posts')return postView(visiblePost(Number(id),''),'');
@@ -294,7 +294,7 @@ async function api(req,url) {
   if(m[2]==='report' && method==='POST') {const input=await jsonBody(req);run('INSERT OR IGNORE INTO reports(reporter_id,post_id,reason,created_at) VALUES(?,?,?,?)',user.id,id,textField(input.reason,'Reason',500,3),now());return {ok:true};}
  }
  if(path==='/api/notifications' && method==='GET') return all(`SELECT n.*,u.username,u.display_name FROM notifications n JOIN users u ON u.id=n.actor_id LEFT JOIN posts p ON p.id=n.post_id WHERE n.user_id=? AND (n.post_id IS NULL OR p.hidden=0) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=n.actor_id) OR (b.blocker_id=n.actor_id AND b.blocked_id=?)) ORDER BY n.id DESC LIMIT 100`,user.id,user.id,user.id).filter(n=>{if(n.group_id){try{const g=community.group(n.group_id,user.id);if(g.kind==='fanclub'&&!g.member)return false;}catch{return false;}}if(!n.post_id)return true;try{visiblePost(n.post_id,user.id);return true;}catch{return false;}}).map(n=>({id:n.id,actorId:n.actor_id,kind:n.kind,groupId:n.group_id,username:n.username,displayName:n.display_name,postId:n.post_id,createdAt:n.created_at,seen:!!n.seen}));
- if(path==='/api/notifications/read' && method==='POST') {run('UPDATE notifications SET seen=1 WHERE user_id=?',user.id);return {ok:true};}
+ if(path==='/api/notifications/read' && method==='POST') {const input=req.headers['content-type']?await jsonBody(req):{};if(input.ids!==undefined){requireThat(Array.isArray(input.ids)&&input.ids.length<=100&&input.ids.every(id=>Number.isSafeInteger(id)&&id>0),400,'Choose valid notification IDs.');transaction(()=>{for(const id of input.ids)run('UPDATE notifications SET seen=1 WHERE user_id=? AND id=?',user.id,id);});}else run('UPDATE notifications SET seen=1 WHERE user_id=?',user.id);return {ok:true,unread:one('SELECT COUNT(*) n FROM notifications WHERE user_id=? AND seen=0',user.id).n};}
  if(path.startsWith('/api/admin/')) {
   requireThat(me(user).isAdmin,403,'Administrator access required.');
   if(path==='/api/admin/reports' && method==='GET') return all('SELECT r.*,p.body,u.username FROM reports r JOIN posts p ON p.id=r.post_id JOIN users u ON u.id=r.reporter_id WHERE r.resolved=0 ORDER BY r.id DESC LIMIT 100');

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {coordinateVideoPlayback,hoverVideoPlayback} from '../mobile/video-playback.mjs';
+import {coordinateVideoPlayback,hoverVideoPlayback,startVideoAutoplay} from '../mobile/video-playback.mjs';
 class Video extends EventTarget{
  tagName='VIDEO';muted=false;paused=true;plays=0;
  play(){this.paused=false;this.plays++;return Promise.resolve();}
@@ -26,4 +26,12 @@ test('a delayed play completion cannot keep playing after pointer leaves',async(
 test('browser autoplay rejection is handled and manual controls remain available',async()=>{
  const video=new Video();video.play=()=>Promise.reject(new Error('NotAllowedError'));const stop=hoverVideoPlayback(video);
  video.dispatchEvent(new Event('mouseenter'));await Promise.resolve();await Promise.resolve();assert.equal(video.paused,true);stop();
+});
+
+test('Spark autoplay waits for asynchronous media readiness and starts only once',async()=>{
+ const video=new Video();video.readyState=0;const states=[],stop=startVideoAutoplay(video,b=>states.push(b));assert.equal(video.plays,0);assert.equal(video.muted,true);
+ video.readyState=2;video.dispatchEvent(new Event('canplay'));await Promise.resolve();assert.equal(video.plays,1);video.pause();video.dispatchEvent(new Event('canplay'));assert.equal(video.plays,1);assert.deepEqual(states,[false]);stop();
+});
+test('blocked Spark autoplay enables fallback and cleanup prevents late updates',async()=>{
+ const video=new Video();video.readyState=2;video.play=()=>Promise.reject(new Error('NotAllowedError'));const states=[],stop=startVideoAutoplay(video,b=>states.push(b));await Promise.resolve();await Promise.resolve();assert.deepEqual(states,[true]);stop();video.dispatchEvent(new Event('canplay'));await Promise.resolve();assert.deepEqual(states,[true]);
 });

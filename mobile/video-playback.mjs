@@ -32,3 +32,16 @@ export function hoverVideoPlayback(video){
  video.addEventListener('mouseleave',leave);
  return ()=>{disposed=true;leave();video.removeEventListener('mouseenter',enter);video.removeEventListener('mouseleave',leave);};
 }
+
+export function startVideoAutoplay(video,onBlocked=()=>{}){
+ let disposed=false,started=false,pending=false;
+ video.muted=true;
+ const attempt=()=>{
+  if(disposed||started||pending||video.readyState<2)return;
+  pending=true;
+  try{Promise.resolve(video.play()).then(()=>{pending=false;if(!disposed){started=true;onBlocked(false);}}).catch(()=>{pending=false;if(!disposed)onBlocked(true);});}
+  catch{pending=false;if(!disposed)onBlocked(true);}
+ };
+ video.addEventListener('loadeddata',attempt);video.addEventListener('canplay',attempt);attempt();
+ return()=>{disposed=true;video.removeEventListener('loadeddata',attempt);video.removeEventListener('canplay',attempt);};
+}

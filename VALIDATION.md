@@ -1,3 +1,17 @@
+# Latest validation: Gather v0.9.22
+
+126 automated tests passed; TypeScript, Expo lint, and web/iOS/Android bundle exports passed. The new recording test verifies host token authorization, shared notice visibility, input validation, expiry, stopping and preservation of the active live.
+
+Real-browser recording, microphone/tab audio mixing and download playback have not been tested. No production deployment or real-device QA was performed.
+
+# Latest validation: Gather v0.9.21
+
+125 automated tests passed. TypeScript check and Expo lint passed. Web, iOS and Android bundle exports passed.
+
+New tests cover notification batch ownership, preserved history, new unread notifications, active battle-user visibility, admin restrictions, asynchronous Spark startup and blocked autoplay fallback.
+
+No production deployment, signed native installer, real-phone test, live Mux-provider playback test or visual/browser QA was performed. Desktop startup improvements are tested with simulated media readiness; production video issues may also involve provider or network configuration. Mux Player integration instructions are included; the player replacement is not implemented in this release.
+
 # Validation for Gather 0.8.1
 
 65 automated tests pass, including invite reuse/expiry/rollback, audited suspension and revoked sessions, onboarding, caption ownership/privacy, idempotent starter Gatherings, post rate limiting, product photo visibility/ownership, signed Mux caption/trim requests, and LiveKit diagnostics/cleanup. Existing auth, messages, private audiences, blocks, gallery, shop catalog, content bot, and persistence tests remain included.
