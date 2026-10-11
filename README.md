@@ -1,3 +1,7 @@
+# Latest update: 0.9.5
+
+See MAP-UPDATE.md for member maps and full-screen sign-in artwork.
+
 # Gather 0.9.4 · Tagging, Fan Clubs and sign-in artwork
 
 See USER-TAGGING-UPDATE.md, FAN-CLUBS-UPDATE.md and INSTALL-THIS-UPDATE.md. Fan Clubs provide creator-defined perks, member-only details/links and posts, plus open/application membership. The supplied Gather artwork is bundled on sign-in/registration. Type @username in a post, photo/video caption, comment or Gathering post to tag someone. Matching accounts become profile links, with notifications that respect visibility and blocks. This cumulative update retains live totals, double/triple battle points, gifts, wallets and AI page managers.

@@ -301,7 +301,7 @@ const mimeTypes={'.html':'text/html; charset=utf-8','.js':'application/javascrip
 const webDir=resolve(here,'../mobile/dist');
 export const server=createServer(async(req,res)=>{
  res.setHeader('X-Content-Type-Options','nosniff');
- res.setHeader('Referrer-Policy','no-referrer');
+ res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
  try {
   const url=new URL(req.url,'http://localhost');
   if(url.pathname.startsWith('/api/')) {

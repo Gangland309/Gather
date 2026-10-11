@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gather",
     "slug": "gather-platform",
-    "version": "0.9.4",
+    "version": "0.9.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
