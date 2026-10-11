@@ -233,6 +233,16 @@ async function api(req,url) {
  if(path==='/api/me' && method==='GET') return me(user);
  if(path==='/api/me' && method==='PATCH') { const input=await jsonBody(req); run('UPDATE users SET display_name=?,bio=? WHERE id=?',textField(input.displayName,'Display name',60,1),textField(input.bio,'Bio',300),user.id); return me(one('SELECT * FROM users WHERE id=?',user.id)); }
  if(path==='/api/mentions'&&method==='GET')return mentions.search(url.searchParams.get('q'),user);
+ if(path==='/api/search' && method==='GET') {
+  const term=(url.searchParams.get('q')||'').trim().slice(0,100);
+  if(!term)return {users:[],posts:[],nextCursor:null};
+  const q=term.replace(/[\\%_]/g,'\\$&'),name=term.replace(/^@/,'').replace(/[\\%_]/g,'\\$&');
+  const users=term.startsWith('#')?[]:all(`SELECT * FROM users u WHERE (username LIKE ? ESCAPE '\\' OR display_name LIKE ? ESCAPE '\\') AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=?)) ORDER BY created_at DESC LIMIT 30`,`%${name}%`,`%${name}%`,user.id,user.id).map(u=>profile(u,user.id));
+  const before=Number(url.searchParams.get('before')||Number.MAX_SAFE_INTEGER);requireThat(Number.isSafeInteger(before)&&before>0,400,'Invalid cursor.');
+  const candidates=term.startsWith('@')?[]:all(`SELECT p.* FROM posts p WHERE p.hidden=0 AND p.id<? AND p.body LIKE ? ESCAPE '\\' AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=p.user_id) OR (b.blocker_id=p.user_id AND b.blocked_id=?)) ORDER BY p.id DESC LIMIT 100`,before,`%${q}%`,user.id,user.id);
+  const posts=candidates.filter(p=>{try{visiblePost(p.id,user.id);return !term.startsWith('#')||[...p.body.matchAll(/#[\p{L}\p{N}_]+/gu)].some(m=>m[0].toLowerCase()===term.toLowerCase());}catch{return false;}}).map(p=>postView(p,user.id));
+  return {users,posts,nextCursor:candidates.length===100?candidates.at(-1).id:null};
+ }
  if(path==='/api/users' && method==='GET') {
   const q=(url.searchParams.get('q') || '').slice(0,60).replace(/[\\%_]/g,'\\$&');
   return all(`SELECT * FROM users u WHERE (username LIKE ? ESCAPE '\\' OR display_name LIKE ? ESCAPE '\\') AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=?)) ORDER BY created_at DESC LIMIT 30`,`%${q}%`,`%${q}%`,user.id,user.id).map(u=>profile(u,user.id));

@@ -1,3 +1,7 @@
+# Latest release: Gather v0.9.26
+
+Top search for users, content keywords and exact #hashtags on desktop/mobile, plus Add Friends dropdown with incoming request acceptance/decline. Deploy server and client together. Search shows only posts the signed-in member can access. Includes prior updates. Browser and phone interaction testing remains.
+
 # Latest release: Gather v0.9.25
 
 Fullscreen / Exit fullscreen controls for lives, podcasts and Gathering voice parties, with browser fullscreen and an expanded-view fallback. Includes all previous updates. Deploy server and client together using the steps below. Refresh Gather after deployment, join a room and press Fullscreen. Speaker/shared-screen enlargement remains per viewer.
