@@ -202,7 +202,7 @@ async function api(req,url) {
   return {token,user:me(user),emailSent};
  }
  if(path==='/api/discord/callback'&&method==='GET'){limit(req,'discord-callback',30,60000);return discord.callback(url);}
- if(path.startsWith('/api/live')&&((method==='GET')||(method==='POST'&&(path.endsWith('/token')||path.endsWith('/end-browser'))))){let optional=null;if(req.headers.authorization)optional=auth(req);limit(req,'live-view',optional?300:1200,60000,optional?.id);const result=await live.route(req,url,optional);if(result!==undefined)return result;}
+ if(path.startsWith('/api/live')&&((method==='GET')||(method==='POST'&&(path.endsWith('/token')||path.endsWith('/end-browser')||path.endsWith('/thumbnail'))))){let optional=null;if(req.headers.authorization)optional=auth(req);limit(req,'live-view',optional?300:1200,60000,optional?.id);const result=await live.route(req,url,optional);if(result!==undefined)return result;}
  if(path.startsWith('/api/public/')&&method==='GET'){const parts=path.split('/'),id=parts[4];
   if(parts[3]==='videos')return video.route(req,new URL(`/api/videos/${id}`,url),{id:''});
   if(parts[3]==='posts')return postView(visiblePost(Number(id),''),'');

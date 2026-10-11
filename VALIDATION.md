@@ -69,3 +69,6 @@ The uploaded PNG is copied unchanged into the application assets. TypeScript and
 - TypeScript and Expo lint passed.
 - Web, iOS and Android bundle exports are checked before packaging. They are not signed store installers.
 - No real device, live tile-provider session, deployment or visual browser QA is claimed. Follow MAP-UPDATE.md device checks before rollout.
+
+## Gather v0.9.17
+119 tests passed, including live thumbnail host control authorization, upload throttling, JPEG envelope validation, expiry, deletion and broadcast visibility. TypeScript and lint pass. All platform bundle exports are checked before packaging. Updated light palette and one-time theme preference reset remove the black app background. Real-camera snapshots, visual layout and phone testing remain pending; no deployment is claimed.

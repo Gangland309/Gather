@@ -1,3 +1,11 @@
+# Gather v0.9.18
+
+Copper and teal in both Light and Dark, with matching logo/default G icons. Includes live thumbnails. See CHANGELOG-v0.9.18.md. Deploy server and client.
+
+# Gather v0.9.17
+
+Black app background removed; the app defaults to Light and resets old theme preferences once. New: recent host-camera thumbnails in active live feed cards. Deploy both server and client. See CHANGELOG-v0.9.17.md.
+
 # Gather v0.9.16
 
 See CHANGELOG-v0.9.16.md for the black/icy-blue palette. Existing light preferences remain available; choose Dark in Appearance to try it.
