@@ -1,3 +1,7 @@
+# Latest release: Gather v0.9.24
+
+Top shortcuts on desktop and mobile. See CHANGELOG-v0.9.24.md. Deploy the updated client using the existing instructions below.
+
 # Latest release: Gather v0.9.23
 
 Gathering voice parties now support screen sharing in supported desktop browsers. See CHANGELOG-v0.9.23.md. Includes all previous updates.
