@@ -132,6 +132,7 @@ const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked
 const gcRoute=createGC({db,one,all,run,now,jsonBody,requireThat,textField,transaction,me,notify});
 const rooms=createRooms({db,one,all,run,now,jsonBody,requireThat,textField,blocked,notify,transaction,profile},live);
 export const discord=createDiscord({db,one,all,run,hash,jsonBody,requireThat,transaction,blocked,me});
+community.ensureOfficial();
 async function api(req,url) {
  const method = req.method, path = url.pathname;
  if(path==='/api/config' && method==='GET') return {publicOrigin:process.env.PUBLIC_ORIGIN||process.env.RENDER_EXTERNAL_URL||'',supportEmail:process.env.SUPPORT_EMAIL||'',inviteRequired:process.env.INVITE_ONLY==='true'};

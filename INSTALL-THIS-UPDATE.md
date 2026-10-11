@@ -1,10 +1,16 @@
-# Gather 0.9.0 — install this update
+# Gather 0.9.3 — install this update
+
+New: live gift totals and head-to-head battles with 1×, double and triple points. See LIVE-BATTLES-UPDATE.md for the rules and two-account testing steps.
 
 The admin control panel now includes automatic AI page managers above the manual content bot. See AI-PAGE-MANAGERS-SETUP.md to add your server AI key and enable scheduled public posting. GC distribution has an always-visible amount field and a clear confirmation step. GC Wallet is now in the Me menu and first in Settings.
 
 The admin control panel also includes the Gather content bot. Generate seven drafts, edit/save, then confirm public publication. If needed, press Set up official Gather page first. The manual bot remains available alongside automatic AI text posting. AI-generated pictures and videos are not connected.
 
 This update also includes live gifting. See LIVE-GIFTS-UPDATE.md for testing instructions. Viewers choose the recipient and gift, then confirm the GC or Test GC transfer. Its animation appears over the selected participant’s video or camera-off tile for all viewers. Shop checkout and cash-out remain disabled.
+
+See LIVE-GIFTS-AND-GATHER-PAGE.md. This version creates the official Gather page automatically on API startup, adds creator-to-audience gifts and makes gift announcements extra bold.
+
+See LIVE-GIFT-BUTTON-FIX.md: Gift controls now appear in the phone browser studio, with inline sign-in when needed. Shop gift previews include a working Go to Live button.
 
 See COMMUNITY-PLUS-UPDATE.md for shop photo/video galleries, Gifts previews, public interest hubs, applications, reminders, calls, voice parties, camera effects, navigation and admin additions. Marketing assets and a ten-second Spark video are in the marketing folder.
 
@@ -22,7 +28,7 @@ This cumulative update includes the previous Discord, phone-contact and default 
 1. Download and extract the ZIP. Open its `gather` folder.
 2. Back up your existing project and database first. End active broadcasts before deployment.
 3. Copy the contents of the new `gather` folder into your existing Gather repository, replacing matching source files. Keep your existing `.env`, `data`, uploads and Render persistent disk. Do not replace the repository with an empty folder or delete your data.
-4. Open GitHub Desktop. Review changes, commit with “Gather automatic AI managers and wallet update”, then Push origin.
+4. Open GitHub Desktop. Review changes, commit with “Gather live totals and battles update”, then Push origin.
 5. In Render, use build command `npm ci && npm --prefix mobile ci --include=dev && npm run build:web` and start command `node server/server.mjs`. Keep `DATA_DIR=/var/data` and the existing persistent disk configuration. Wait for the deployment to become Live.
 6. Open https://gatherourworld.com and refresh. If the browser still shows old assets, use an InPrivate window. The server adds new database columns/tables automatically.
 7. Test with two accounts: content sharing on/off, a public and private Spark, podcast invitation acceptance and moderation, and location sharing into a Gathering both accounts have joined. Deny device location once to verify no share is created; share and then stop to verify it disappears for the other member.

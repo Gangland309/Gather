@@ -1,4 +1,4 @@
-# Gather 0.9.0 — Automatic AI page managers, GC distribution and wallet access
+# Gather 0.9.2 — Automatic AI page managers, GC distribution and wallet access
 
 ## Turn on automatic AI posts
 
@@ -6,7 +6,7 @@
 2. In Render → your Gather service → Environment, add OPENAI_API_KEY with your OpenAI API project's secret key. Keep it on the server; do not paste it in an EXPO_PUBLIC variable, chat, a post or your repository.
 3. Add OPENAI_MODEL=gpt-4.1-mini, or another Responses-compatible text model your API project can access. Save and redeploy. Your OpenAI API project needs access and billing for generation.
 4. Sign in as the verified owner admin. ADMIN_EMAIL in Render must match that login email. Sign out/in after changing it.
-5. Open **Admin panel**. If necessary, use **Set up official Gather page** in Gather content bot. Page setup uses the existing follow-for-current-members behavior.
+5. Open **Admin panel**. The official Gather page is automatically created on API startup. Existing page identity and posts are preserved. The manual setup button remains as an idempotent fallback.
 6. At the top, open **AI page managers**. Choose topics, tone, interval and daily attempt limit. Defaults: every eight hours, up to three generation attempts per rolling 24 hours.
 7. Choose **Drafts only**, save settings and press **Generate an AI draft now** to test the key. Watch AI activity until the job becomes draft. Press Refresh drafts in Gather content bot to review it.
 8. When ready, choose **Automatic public posts**, check the public-post consent box, and press **Start AI managers**. The first scheduled run is one interval later. To publish immediately, check the consent box again and press **Run now · publish as Gather**.

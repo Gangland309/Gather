@@ -35,3 +35,19 @@ TypeScript and lint passed. Existing content-bot authorization and publication e
 ## 0.9.0 Automatic AI managers, GC form and wallet navigation
 
 80 tests passed; TypeScript and lint passed. AI worker tests cover persisted schedules, overlapping worker claims, role rotation, pause during generation, failed/flagged content, interrupted jobs, owner permissions, explicit automatic-publishing configuration, rolling caps, draft-only runs, raw Responses parsing and moderation. Provider calls use controlled fake responses; no real API credentials were used. Existing GC tests continue to verify exact amounts, owner-only issuance and retry idempotency. GC form always renders amount and review controls; wallet has a Me menu destination and is first in Settings. Actual deployed UI and live provider generation remain to be tested by the operator.
+
+## 0.9.1 Live gift button
+
+80 tests passed. TypeScript and lint passed. Gift controls now render inside both live transports and the phone browser studio, with an inline Gather login for an unsigned-in browser. A single eligible recipient is preselected. Shop Gifts routes to Live. Account credentials are not added to handoff URLs. Deployed phone/video behavior still needs operator testing. The previously reported Render 502 is not diagnosed or claimed fixed by this UI update.
+
+## 0.9.2 Official page and audience gifts
+
+82 tests passed, including startup page/wallet creation, idempotent page identity, preserved unfollows, creator-to-viewer gifting, audience role privacy, offline/expired/left viewer exclusions and Test GC isolation. TypeScript and lint passed. Gift announcement typography is larger and extra bold. The production browser was not signed into admin; no production page mutation occurred. The reported 502 is still unverified from Render logs.
+
+## Gather 0.9.3 · Live totals and battles
+
+87 automated tests pass. Added checks cover live gift totals, one-time historical receipt backfill with large integers, double/triple scoring, acceptance/denial/expiry, duplicate gift retries, concurrent challenges, separate GC/Test GC wallets and scores, competitor gifts excluded from scoring, exact timer start/deadline boundaries, frozen results after restart, ties/winners, removal/cancellation/end and ineligible competitors. Existing 82 checks remain included.
+
+TypeScript and Expo lint pass. Web, iOS and Android exports pass. Battle and gift totals are server-authoritative and persisted; the public scoreboard is refreshed by polling.
+
+The attempted local browser layout check could not run because the Playwright browser binary is unavailable. No screenshot, real phone layout, live provider connectivity or production deployment verification is claimed. Camera, audio, sign-in, gift animations and multi-viewer scoring must be checked with actual configured devices after deployment. The earlier /admin/official HTTP 502 remains undiagnosed without Render runtime logs.

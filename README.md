@@ -1,3 +1,15 @@
+# Gather 0.9.3 · Live totals and battles
+
+See LIVE-BATTLES-UPDATE.md and INSTALL-THIS-UPDATE.md. This cumulative release adds exact live gift totals, consent-based timed battles, separate GC/Test GC scoreboards and 1×/2×/3× points. Earlier live gift, official page, AI manager, GC wallet and admin changes are included.
+
+# Latest update: 0.9.2 live gifts and automatic official Gather page
+
+See LIVE-GIFTS-AND-GATHER-PAGE.md. Gift buttons in the phone browser studio, creator-to-audience gifts, extra-bold announcements and automatic official-page setup. Includes AI managers, GC distribution and wallet access.
+
+# Latest update: 0.9.1 live gift button fix
+
+See LIVE-GIFT-BUTTON-FIX.md. Live studio includes Gift controls and inline browser sign-in; Shop Gifts can open Live. Previous AI managers, GC distribution and wallet updates are included.
+
 # Latest update: 0.9.0 automatic AI page managers and wallet access
 
 See AI-PAGE-MANAGERS-SETUP.md. Automatic AI text posts with three rotating writing roles, saved schedules, activity logs and pause controls. GC distribution has visible amount/review/confirmation controls. Me → GC Wallet and Settings expose balances and history. Requires a server OpenAI API key to generate content.
