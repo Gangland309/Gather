@@ -1,3 +1,9 @@
+# Latest validation: Gather v0.9.29
+
+137 automated tests, TypeScript and Expo lint passed. Fullscreen video uses a small upper-left back arrow with a 44-point target; browser controls restore on return to inline playback, and native video fullscreen has Android Back handling. Live/podcast/voice-party fullscreen hides controls behind ⋯ without unmounting them, preserving recording and sound state. Speaker tapping and host-directed focus logic remain in place.
+
+Browser visual QA could not run because a browser executable is unavailable. No production deployment, live provider check or physical-phone testing performed. Verify minimal fullscreen layout, arrow exit, Escape/Android Back, double-tap likes and playback continuity after deployment. Web, iOS and Android bundle exports passed.
+
 # Latest validation: Gather v0.9.28
 
 137 automated tests, TypeScript checks, Expo lint and web/iOS/Android bundle exports passed. Mobile header uses a fixed 56-point single row and 44-point Back/Post/Menu targets, with search and actions hidden inside expandable menu sections.

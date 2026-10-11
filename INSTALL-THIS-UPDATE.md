@@ -1,3 +1,9 @@
+# Latest release: Gather v0.9.29
+
+Fullscreen feed videos and Sparks now show only the video and a small high-contrast back arrow with a 44-point tap target at the upper left, positioned below safe-area insets. Player controls are hidden in fullscreen and restored inline. Double-tap likes remain available. Native uses a minimal fullscreen modal with Android Back support. Web supports browser fullscreen, expanded fallback and Escape. Lives, podcasts and voice parties use a small back arrow and a compact ⋯ menu in fullscreen. Room controls and speaker choices are tucked into that menu. Tap a speaker or shared-screen box to enlarge it; host/moderator featured-view rules remain enforced. All v0.9.28 changes remain.
+
+Deploy server and client together following the instructions below; preserve your Render database and environment. Refresh after deployment. Tap the video to enter fullscreen; use the upper-left arrow to return. Set volume/captions using inline controls before entering fullscreen.
+
 # Latest release: Gather v0.9.28
 
 Mobile now has one 56-point header row: compact Gather logo and Find Your People, Back, Post (+) and Menu. Search, Add Friends and quick actions are inside expandable menu sections; search results no longer occupy the feed header. Menu scrolls independently and selecting a result closes it. Desktop layout and all v0.9.27 changes remain.
