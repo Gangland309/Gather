@@ -1,3 +1,4 @@
+import {createMentions} from './mentions.mjs';
 import {createGC} from './gc.mjs';
 import {createRooms} from './rooms.mjs';
 import {createDiscord} from './discord.mjs';
@@ -106,11 +107,11 @@ function profile(user, viewer) {
 function me(user) { return {...profile(user,user.id), emailVerified:!!user.email_verified, verificationRequired, isAdmin:!!adminEmail && user.email===adminEmail && (!verificationRequired || !!user.email_verified)}; }
 function blocked(a,b) { return !!one('SELECT 1 FROM blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?)',a,b,b,a); }
 function visiblePost(id, viewer) { const post = one('SELECT * FROM posts WHERE id=? AND hidden=0',id); requireThat(post && community.canPost(post,viewer) && (!post.original_id || (()=>{const original=one('SELECT * FROM posts WHERE id=? AND hidden=0',post.original_id);return original && community.canPost(original,viewer);})()),404,'Post not found.'); return post; }
-function notify(target, actor, kind, postId=null) {const prefs=JSON.parse(one('SELECT notification_prefs FROM users WHERE id=?',target)?.notification_prefs||'{}');const category=kind.startsWith('gathering')?'gatherings':kind.startsWith('live')?'live':kind.startsWith('message')?'messages':kind.startsWith('support')?'support':'social';if(prefs[category]===false)return; if(target!==actor) run('INSERT INTO notifications(user_id,actor_id,kind,post_id,created_at) VALUES(?,?,?,?,?)',target,actor,kind,postId,now()); }
+function notify(target, actor, kind, postId=null, groupId=null) {const prefs=JSON.parse(one('SELECT notification_prefs FROM users WHERE id=?',target)?.notification_prefs||'{}');const category=(kind.startsWith('gathering')||kind.startsWith('fanclub'))?'gatherings':kind.startsWith('live')?'live':kind.startsWith('message')?'messages':kind.startsWith('support')?'support':'social';if(prefs[category]===false)return; if(target!==actor) run('INSERT INTO notifications(user_id,actor_id,kind,post_id,created_at,group_id) VALUES(?,?,?,?,?,?)',target,actor,kind,postId,now(),groupId); }
 function postView(p,viewer) {
  const user = one('SELECT * FROM users WHERE id=?',p.user_id);
  const upload = p.media_id ? one('SELECT * FROM uploads WHERE id=?',p.media_id) : null;
- return { original:p.original_id?postView(visiblePost(p.original_id,viewer),viewer):null, canShare:!!user.content_shareable&&(!p.original_id||!!one('SELECT u.content_shareable FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=?',p.original_id)?.content_shareable),id:p.id, videoId:p.video_id, audience:p.audience, groupId:p.group_id, pinned:!!p.pinned, body:p.body, createdAt:p.created_at, author:profile(user,viewer), mediaUrl:upload ? `/media/${upload.filename}` : null,
+ return { original:p.original_id?postView(visiblePost(p.original_id,viewer),viewer):null, canShare:!!user.content_shareable&&(!p.original_id||!!one('SELECT u.content_shareable FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=?',p.original_id)?.content_shareable),id:p.id, videoId:p.video_id, audience:p.audience, groupId:p.group_id, pinned:!!p.pinned, body:p.body, mentions:mentions.resolve(p.body,p.user_id,viewer), createdAt:p.created_at, author:profile(user,viewer), mediaUrl:upload ? `/media/${upload.filename}` : null,
   likeCount:one('SELECT COUNT(*) n FROM likes l JOIN users u ON u.id=l.user_id WHERE l.post_id=? AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=?))',p.id,viewer,viewer).n,
   commentCount:one('SELECT COUNT(*) n FROM comments c WHERE c.post_id=? AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=c.user_id) OR (b.blocker_id=c.user_id AND b.blocked_id=?))',p.id,viewer,viewer).n,
   liked:!!one('SELECT 1 FROM likes WHERE user_id=? AND post_id=?',viewer,p.id) };
@@ -124,9 +125,11 @@ async function deliverAction(user,kind) {
  run('INSERT INTO email_actions VALUES(?,?,?,?)',key,user.id,kind,Date.now()+(kind==='verify'?24*3600000:30*60000));
  try {await sendAction(user.email,kind,token);return true;}catch {run('DELETE FROM email_actions WHERE hash=?',key);return false;}
 }
+if(!all('PRAGMA table_info(notifications)').some(v=>v.name==='group_id'))db.exec('ALTER TABLE notifications ADD COLUMN group_id INTEGER');
+const mentions=createMentions({db,one,all,run,blocked,notify,requireThat,visiblePost});
 const pilot=createPilot({db,one,all,run,now,requireThat,textField,jsonBody,transaction,me,hash});
 const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me,notify,hash});
-const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash,disconnectGroupMember:(id,userId)=>rooms.disconnectGroupMember(id,userId)});
+const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash,mentionValidate:mentions.validate,mentionSend:mentions.send,disconnectGroupMember:(id,userId)=>rooms.disconnectGroupMember(id,userId)});
 const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost,blocked,me});
 const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction,me,hash});
 const gcRoute=createGC({db,one,all,run,now,jsonBody,requireThat,textField,transaction,me,notify});
@@ -217,6 +220,7 @@ async function api(req,url) {
  if(path==='/api/account/password'&&method==='POST'){const input=await jsonBody(req);requireThat(typeof input.currentPassword==='string'&&input.currentPassword.length<=128,400,'Enter your current password.');requireThat(typeof input.newPassword==='string'&&input.newPassword.length>=12&&input.newPassword.length<=128,400,'New password must contain 12–128 characters.');const candidate=await scrypt(input.currentPassword,user.salt,64);requireThat(timingSafeEqual(candidate,Buffer.from(user.password_hash,'hex')),403,'Current password is incorrect.');const salt=randomBytes(16).toString('hex'),value=(await scrypt(input.newPassword,salt,64)).toString('hex');transaction(()=>{run('UPDATE users SET password_hash=?,salt=? WHERE id=?',value,salt,user.id);run('DELETE FROM sessions WHERE user_id=? AND hash<>?',user.id,hash(req.headers.authorization.slice(7)));});return {ok:true};}
  if(path==='/api/me' && method==='GET') return me(user);
  if(path==='/api/me' && method==='PATCH') { const input=await jsonBody(req); run('UPDATE users SET display_name=?,bio=? WHERE id=?',textField(input.displayName,'Display name',60,1),textField(input.bio,'Bio',300),user.id); return me(one('SELECT * FROM users WHERE id=?',user.id)); }
+ if(path==='/api/mentions'&&method==='GET')return mentions.search(url.searchParams.get('q'),user);
  if(path==='/api/users' && method==='GET') {
   const q=(url.searchParams.get('q') || '').slice(0,60).replace(/[\\%_]/g,'\\$&');
   return all(`SELECT * FROM users u WHERE (username LIKE ? ESCAPE '\\' OR display_name LIKE ? ESCAPE '\\') AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=?)) ORDER BY created_at DESC LIMIT 30`,`%${q}%`,`%${q}%`,user.id,user.id).map(u=>profile(u,user.id));
@@ -250,7 +254,7 @@ async function api(req,url) {
   run('INSERT INTO uploads(id,user_id,filename,mime) VALUES(?,?,?,?)',id,user.id,filename,mime);
   return {id,url:`/media/${filename}`};
  }
- if(/^\/api\/posts\/\d+$/.test(path)&&method==='PATCH'){const id=Number(path.split('/').pop()),input=await jsonBody(req),post=one('SELECT * FROM posts WHERE id=? AND user_id=? AND hidden=0',id,user.id);requireThat(post,404,'Post not found.');const body=textField(input.body,'Caption',2000);requireThat(body||post.media_id||post.video_id,400,'A text post cannot be empty.');run('UPDATE posts SET body=? WHERE id=?',body,id);return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);}
+ if(/^\/api\/posts\/\d+$/.test(path)&&method==='PATCH'){const id=Number(path.split('/').pop()),input=await jsonBody(req),post=one('SELECT * FROM posts WHERE id=? AND user_id=? AND hidden=0',id,user.id);requireThat(post,404,'Post not found.');const body=textField(input.body,'Caption',2000);requireThat(body||post.media_id||post.video_id,400,'A text post cannot be empty.');mentions.validate(body);transaction(()=>{run('UPDATE posts SET body=? WHERE id=?',body,id);mentions.send(post,body,user.id);});return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);}
  if(path==='/api/posts' && method==='POST') {
   const input=await jsonBody(req),body=textField(input.body,'Post',2000),mediaId=input.mediaId??null,videoId=input.videoId??null;
   requireThat(body || mediaId || videoId,400,'Write something or add a photo.');
@@ -260,8 +264,9 @@ async function api(req,url) {
   requireThat(['self','friends','public','followers','gathering'].includes(audience),400,'Choose a post audience.');
   if(audience==='public'&&user.is_private)requireThat(input.confirmPublic===true,400,'Confirm this post will be visible to everyone.');
   if(audience==='gathering'){const g=community.group(groupId,user.id,true);requireThat(g.member,403,'Join before posting.');}else requireThat(groupId===null,400,'Select Gathering audience for group posts.');
-  const id=Number(run('INSERT INTO posts(user_id,body,media_id,created_at,audience,group_id,video_id) VALUES(?,?,?,?,?,?,?)',user.id,body,mediaId,now(),audience,groupId,videoId).lastInsertRowid);
-  if(groupId)for(const member of all("SELECT user_id FROM gathering_members WHERE group_id=? AND status='approved'",groupId))if(!blocked(member.user_id,user.id))notify(member.user_id,user.id,'gathering_post',id);
+  mentions.validate(body);
+  const id=transaction(()=>{const id=Number(run('INSERT INTO posts(user_id,body,media_id,created_at,audience,group_id,video_id) VALUES(?,?,?,?,?,?,?)',user.id,body,mediaId,now(),audience,groupId,videoId).lastInsertRowid);mentions.send(one('SELECT * FROM posts WHERE id=?',id),body,user.id);return id;});
+  if(groupId)for(const member of all("SELECT user_id FROM gathering_members WHERE group_id=? AND status='approved'",groupId))if(!blocked(member.user_id,user.id))notify(member.user_id,user.id,one('SELECT kind FROM gatherings WHERE id=?',groupId)?.kind==='fanclub'?'fanclub_post':'gathering_post',id,groupId);
   return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);
  }
  if(path==='/api/posts' && method==='GET') {
@@ -276,11 +281,11 @@ async function api(req,url) {
   if(!m[2] && method==='DELETE') {requireThat(post.user_id===user.id,403,'You can delete only your own posts.');run('DELETE FROM posts WHERE id=?',id);return {ok:true};}
   if(m[2]==='like' && method==='PUT') {transaction(()=>{if(run('INSERT OR IGNORE INTO likes VALUES(?,?)',user.id,id).changes) notify(post.user_id,user.id,'like',id);});return postView(post,user.id);}
   if(m[2]==='like' && method==='DELETE') {run('DELETE FROM likes WHERE user_id=? AND post_id=?',user.id,id);return postView(post,user.id);}
-  if(m[2]==='comments' && method==='GET') return all(`SELECT c.* FROM comments c WHERE post_id=? AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=c.user_id) OR (b.blocker_id=c.user_id AND b.blocked_id=?)) ORDER BY c.id DESC LIMIT 100`,id,user.id,user.id).reverse().map(c=>({id:c.id,body:c.body,createdAt:c.created_at,author:profile(one('SELECT * FROM users WHERE id=?',c.user_id),user.id)}));
-  if(m[2]==='comments' && method==='POST') {const input=await jsonBody(req);transaction(()=>{run('INSERT INTO comments(post_id,user_id,body,created_at) VALUES(?,?,?,?)',id,user.id,textField(input.body,'Comment',1000,1),now());notify(post.user_id,user.id,'comment',id);});return {ok:true};}
+  if(m[2]==='comments' && method==='GET') return all(`SELECT c.* FROM comments c WHERE post_id=? AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=c.user_id) OR (b.blocker_id=c.user_id AND b.blocked_id=?)) ORDER BY c.id DESC LIMIT 100`,id,user.id,user.id).reverse().map(c=>({id:c.id,body:c.body,mentions:mentions.resolve(c.body,c.user_id,user.id),createdAt:c.created_at,author:profile(one('SELECT * FROM users WHERE id=?',c.user_id),user.id)}));
+  if(m[2]==='comments' && method==='POST') {const input=await jsonBody(req);const body=textField(input.body,'Comment',1000,1);mentions.validate(body);transaction(()=>{const commentId=Number(run('INSERT INTO comments(post_id,user_id,body,created_at) VALUES(?,?,?,?)',id,user.id,body,now()).lastInsertRowid);mentions.send(post,body,user.id,commentId);notify(post.user_id,user.id,'comment',id);});return {ok:true};}
   if(m[2]==='report' && method==='POST') {const input=await jsonBody(req);run('INSERT OR IGNORE INTO reports(reporter_id,post_id,reason,created_at) VALUES(?,?,?,?)',user.id,id,textField(input.reason,'Reason',500,3),now());return {ok:true};}
  }
- if(path==='/api/notifications' && method==='GET') return all(`SELECT n.*,u.username,u.display_name FROM notifications n JOIN users u ON u.id=n.actor_id LEFT JOIN posts p ON p.id=n.post_id WHERE n.user_id=? AND (n.post_id IS NULL OR p.hidden=0) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=n.actor_id) OR (b.blocker_id=n.actor_id AND b.blocked_id=?)) ORDER BY n.id DESC LIMIT 100`,user.id,user.id,user.id).map(n=>({id:n.id,actorId:n.actor_id,kind:n.kind,username:n.username,displayName:n.display_name,postId:n.post_id,createdAt:n.created_at,seen:!!n.seen}));
+ if(path==='/api/notifications' && method==='GET') return all(`SELECT n.*,u.username,u.display_name FROM notifications n JOIN users u ON u.id=n.actor_id LEFT JOIN posts p ON p.id=n.post_id WHERE n.user_id=? AND (n.post_id IS NULL OR p.hidden=0) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=n.actor_id) OR (b.blocker_id=n.actor_id AND b.blocked_id=?)) ORDER BY n.id DESC LIMIT 100`,user.id,user.id,user.id).filter(n=>{if(n.group_id){try{const g=community.group(n.group_id,user.id);if(g.kind==='fanclub'&&!g.member)return false;}catch{return false;}}if(!n.post_id)return true;try{visiblePost(n.post_id,user.id);return true;}catch{return false;}}).map(n=>({id:n.id,actorId:n.actor_id,kind:n.kind,groupId:n.group_id,username:n.username,displayName:n.display_name,postId:n.post_id,createdAt:n.created_at,seen:!!n.seen}));
  if(path==='/api/notifications/read' && method==='POST') {run('UPDATE notifications SET seen=1 WHERE user_id=?',user.id);return {ok:true};}
  if(path.startsWith('/api/admin/')) {
   requireThat(me(user).isAdmin,403,'Administrator access required.');

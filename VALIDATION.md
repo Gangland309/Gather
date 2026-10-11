@@ -51,3 +51,15 @@ TypeScript and lint passed. Existing content-bot authorization and publication e
 TypeScript and Expo lint pass. Web, iOS and Android exports pass. Battle and gift totals are server-authoritative and persisted; the public scoreboard is refreshed by polling.
 
 The attempted local browser layout check could not run because the Playwright browser binary is unavailable. No screenshot, real phone layout, live provider connectivity or production deployment verification is claimed. Camera, audio, sign-in, gift animations and multi-viewer scoring must be checked with actual configured devices after deployment. The earlier /admin/official HTTP 502 remains undiagnosed without Render runtime logs.
+
+## Gather 0.9.4 · User tagging
+
+91 automated tests pass. New checks cover case-insensitive tag parsing, source offsets, email/URL/overlong-handle exclusions, duplicate/self notifications, caption edit deduplication, comment mentions, public profile-link metadata, block/suspension exclusions, suggestion privacy, ten-tag limits and failed-write rollback, Only-me/friends/private-follower/private-Gathering restrictions, membership removal and Social notification preferences. All previous live battle and gift tests remain included.
+
+TypeScript, Expo lint and web/iOS/Android exports are checked for this release. Live device UI and provider connectivity are not verified. No production deployment is performed here; use the included two-account checklist after deploying.
+
+## Gather 0.9.4 · Fan Clubs and supplied artwork
+
+94 automated tests pass. Fan-club checks cover summary-only previews via both club and Gathering APIs, approved-member perk details/links and post visibility, free membership, join/leave, application approval, owner-only perk/membership changes, moderator restrictions, notifications and unchanged-save deduplication, ban/removal, block/suspension exclusions, HTTPS/credential link validation, perk-count limits and rejected-write preservation. Existing tagging, battle, wallet and AI checks remain included.
+
+The uploaded PNG is copied unchanged into the application assets. TypeScript and Expo lint pass; final web/iOS/Android exports are regenerated for this complete release. Native signed installers, physical-device layouts, real-provider connectivity and production deployment are not verified.
