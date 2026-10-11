@@ -47,6 +47,14 @@ await test('real account-to-account API workflows and authorization',async t=>{
   const feed=await call('/posts',{token:b});assert.equal(feed.data.posts[0].id,postId);assert.equal(feed.data.posts[0].body,"First real post! ' OR 1=1 --");
   assert.equal((await call(`/posts/${postId}`,{token:b,method:'DELETE'})).status,403);
  });
+ await t.test('link previews enforce post visibility and reject local-network links',async()=>{
+  const created=await call('/posts',{token:a,method:'POST',body:{body:'http://127.0.0.1/private',audience:'self'}});
+  assert.equal(created.status,200);
+  assert.equal((await call(`/posts/${created.data.id}/link-previews`,{token:b})).status,404);
+  assert.deepEqual((await call(`/posts/${created.data.id}/link-previews`,{token:a})).data,{previews:[]});
+  assert.equal((await call(`/posts/${created.data.id}/link-previews`)).status,401);
+  await call(`/posts/${created.data.id}`,{token:a,method:'DELETE'});
+ });
  await t.test('following feed, idempotent likes, comments and activity',async()=>{
   assert.equal((await call('/posts?following=true',{token:b})).data.posts.length,0);
   await call(`/users/${alice.user.id}/follow`,{token:b,method:'PUT'});

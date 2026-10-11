@@ -1,3 +1,4 @@
+import {createLinkPreviews} from './link-previews.mjs';
 import {createStories} from './stories.mjs';
 import {createMentions} from './mentions.mjs';
 import {createGC} from './gc.mjs';
@@ -18,6 +19,7 @@ import { resolve, dirname, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scrypt = promisify(scryptCallback);
+const linkPreviews=createLinkPreviews();
 const here = dirname(fileURLToPath(import.meta.url));
 const dataDir = resolve(process.env.DATA_DIR || resolve(here, 'data'));
 mkdirSync(resolve(dataDir, 'media'), { recursive: true });
@@ -212,6 +214,7 @@ async function api(req,url) {
  if(path==='/api/contacts'&&method==='POST')limit(req,'contacts',5,86400000,user.id);
  if(method!=='GET'){if(path==='/api/posts')limit(req,'new-post',30,600000,user.id);if(path.endsWith('/chat'))limit(req,'live-chat',30,60000,user.id);if(path.endsWith('/comments'))limit(req,'new-comment',30,600000,user.id);if(path==='/api/support'||path==='/api/reports'||path.endsWith('/report'))limit(req,'reports-support',10,3600000,user.id);}
  if(path==='/api/discord/connect'&&method==='POST')limit(req,'discord-connect',10,600000,user.id);
+ if(method==='GET'&&/^\/api\/posts\/\d+\/link-previews$/.test(path)){const post=visiblePost(Number(path.split('/')[3]),user.id);limit(req,'link-previews',100,60000,user.id);return {previews:await linkPreviews(post.body)};}
  const discordResult=await discord.route(req,url,user);if(discordResult!==undefined)return discordResult;
  const pilotResult=await pilot.route(req,url,user);if(pilotResult!==undefined)return pilotResult;
  const videoResult=await video.route(req,url,user);if(videoResult!==undefined)return videoResult;
