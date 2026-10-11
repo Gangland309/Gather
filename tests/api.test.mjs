@@ -23,6 +23,11 @@ async function account(username,email=`${username}@example.test`){const r=await 
 await test('real account-to-account API workflows and authorization',async t=>{
  const alice=await account('alice'),bob=await account('bob'),owner=await account('owner');
  const a=alice.token,b=bob.token,o=owner.token;
+ await t.test('saved sessions remain valid after seven days and logout revokes them',async()=>{
+  const person=await account('persistent_user');
+  const clock=Date.now;Date.now=()=>clock()+30*86400000;
+  try{assert.equal((await call('/me',{token:person.token})).status,200);assert.equal((await call('/auth/logout',{token:person.token,method:'POST'})).status,200);assert.equal((await call('/me',{token:person.token})).status,401);}finally{Date.now=clock;}
+ });
  await t.test('authentication, validation and private endpoints',async()=>{
   assert.equal((await call('/health')).data.status,'ok');
   assert.equal((await call('/posts')).status,401);

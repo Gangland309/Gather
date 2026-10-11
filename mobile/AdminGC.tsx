@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useRef,useState} from 'react';
-import {Pressable} from 'react-native';
+import {View,Pressable} from 'react-native';
 import {useTheme,ThemeText as Text,ThemeInput as Input} from './Theme';
 import type {CreditEntry,Balance} from './Wallet';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;

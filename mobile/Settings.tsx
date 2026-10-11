@@ -1,8 +1,7 @@
-import {ThemeView as View} from './Theme';
 import {Wallet} from './Wallet';
 import SoundSettings from './SoundSettings';
 import React,{useEffect,useState} from 'react';
-import {Pressable} from 'react-native';
+import {View,Pressable} from 'react-native';
 import {useTheme,ThemeText as Text} from './Theme';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;
 type Preferences={allowCalls:'friends'|'everyone'|'off';notifications:boolean;ringSeconds:number};

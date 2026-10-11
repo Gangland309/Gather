@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useCallback,useEffect,useRef,useState} from 'react';
-import {Pressable} from 'react-native';
+import {View,Pressable} from 'react-native';
 import * as Linking from 'expo-linking';
 import {useTheme,ThemeText as Text} from './Theme';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;

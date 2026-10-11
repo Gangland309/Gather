@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React from 'react';
-import {} from 'react-native';
+import {View} from 'react-native';
 import {useTheme,ThemeText as Text} from './Theme';
 export function UploadProgress({percent,stage}:{percent:number;stage:string}){
  const {colors}=useTheme();const value=Math.min(100,Math.max(0,Number.isFinite(percent)?percent:0));

@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useEffect,useMemo,useRef,useState} from 'react';
-import {Image,Linking,PanResponder,Platform,Pressable} from 'react-native';
+import {Image,Linking,PanResponder,Platform,Pressable,View} from 'react-native';
 import {ThemeText as Text,useTheme} from './Theme';
 import {ProfileLink} from './ProfileLink';
 import {project,offset,pan,tiles} from './map-geometry.mjs';

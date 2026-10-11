@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useState} from 'react';
-import {Pressable,Platform} from 'react-native';
+import {View,Pressable,Platform} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {useTheme,ThemeText as Text,ThemeInput as Input} from './Theme';
 import {ShopVideoUpload} from './ShopVideoUpload';

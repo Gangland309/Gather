@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useState} from 'react';
-import {Pressable,Image} from 'react-native';
+import {View,Pressable,Image} from 'react-native';
 import {ImageManipulator,SaveFormat,FlipType} from 'expo-image-manipulator';
 import {useTheme,ThemeText as Text} from './Theme';
 type Photo={uri:string;base64:string};

@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useEffect,useState,useRef} from 'react';
-import {Pressable} from 'react-native';
+import {View,Pressable} from 'react-native';
 import {useTheme,ThemeText as Text,ThemeInput as TextInput} from './Theme';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;
 type Draft={id:number;category:string;body:string};

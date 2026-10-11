@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useState} from 'react';
-import {Pressable,Share} from 'react-native';
+import {View,Pressable,Share} from 'react-native';
 import {useTheme,ThemeText as Text,ThemeInput as TextInput} from './Theme';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;
 type Person={id:string;username:string;suspended:number;official:number};

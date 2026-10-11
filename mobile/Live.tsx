@@ -1,11 +1,10 @@
-import {ThemeView as View} from './Theme';
 import {ShareActions} from './ShareActions';
 import {LiveBattleControls} from './LiveBattle';
 import {LiveGifts,useLiveGiftEvents} from './LiveGifts';
 import {ProfileLink} from './ProfileLink';
 import {useTheme,ThemeText as Text,ThemeInput as TextInput} from './Theme';
 import React,{useEffect,useState,useRef} from 'react';
-import {Pressable} from 'react-native';
+import {View,Pressable} from 'react-native';
 import LiveTransport from './LiveTransport';
 import type {LiveConnection,LiveComment} from './LiveTypes';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;

@@ -1,4 +1,3 @@
-import {ThemeView as View} from './Theme';
 import {MentionText,MentionSuggestions,type Mention} from './Mentions';
 import {useRouter} from 'expo-router';
 import {ProfileLink,ProfileNavigation} from './ProfileLink';
@@ -6,7 +5,7 @@ import DefaultAvatar from './DefaultAvatar';
 import {ContentBot} from './ContentBot';
 import {useTheme,ThemeText as Text,ThemeInput as TextInput} from './Theme';
 import React,{useEffect,useState} from 'react';
-import {Image,Pressable} from 'react-native';
+import {View,Image,Pressable} from 'react-native';
 import {BioLinks} from './Community';
 import {VideoPost} from './VideoPost';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;

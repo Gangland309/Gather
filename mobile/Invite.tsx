@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useState} from 'react';
-import {Pressable} from 'react-native';
+import {Pressable,View} from 'react-native';
 import {ThemeText as Text,useTheme} from './Theme';
 import {ShareActions} from './ShareActions';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;

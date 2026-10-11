@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useEffect,useState} from 'react';
-import {Pressable} from 'react-native';
+import {View,Pressable} from 'react-native';
 import {useTheme,ThemeText as Text} from './Theme';
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;
 export type CreditEntry={id:string;amount:string;mode:string;category:string;reason:string;balanceAfter:string;createdAt:string;targetUsername:string;actorUsername:string};

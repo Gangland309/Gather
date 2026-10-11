@@ -52,6 +52,8 @@ if(process.env.RENDER==='true' && !process.env.DATA_DIR) throw new Error('Set DA
 const one = (sql, ...p) => db.prepare(sql).get(...p);
 const all = (sql, ...p) => db.prepare(sql).all(...p);
 const run = (sql, ...p) => db.prepare(sql).run(...p);
+// Upgrade still-valid legacy sessions; revoked or expired sessions stay invalid.
+run('UPDATE sessions SET expires_at=? WHERE expires_at>?',Number.MAX_SAFE_INTEGER,Date.now());
 const now = () => new Date().toISOString();
 const hash = value => createHash('sha256').update(value).digest('hex');
 const adminEmail = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
@@ -193,7 +195,7 @@ async function api(req,url) {
   }
   requireThat(!user.suspended,403,'This account is suspended. Contact support.');
   const token=randomBytes(32).toString('base64url');
-  run('INSERT INTO sessions(hash,user_id,expires_at) VALUES(?,?,?)',hash(token),user.id,Date.now()+7*24*3600000);
+  run('INSERT INTO sessions(hash,user_id,expires_at) VALUES(?,?,?)',hash(token),user.id,Number.MAX_SAFE_INTEGER);
   let emailSent; if(path.endsWith('register') && verificationRequired) emailSent=await deliverAction(user,'verify');
   return {token,user:me(user),emailSent};
  }

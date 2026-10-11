@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useState} from 'react';
-import {Pressable} from 'react-native';
+import {View,Pressable} from 'react-native';
 import {useTheme,ThemeText as Text} from './Theme';
 import {copyGatherLink,shareGatherLink} from './share-link';
 export function ShareActions({url,title,text='',label='Share to another app'}:{url:string;title:string;text?:string;label?:string}){const {colors}=useTheme();const [open,setOpen]=useState(false),[message,setMessage]=useState('');async function share(){try{const result=await shareGatherLink(url,title,text);setMessage(result==='copied'?'Link copied. Paste it into another platform.':result==='shared'?'Share menu completed.':'');}catch(e){setMessage(e instanceof Error?e.message:'Could not open sharing. Copy the link below.');}}

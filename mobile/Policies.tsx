@@ -1,7 +1,6 @@
-import {ThemeView as View} from './Theme';
 import {useTheme,ThemeText as Text,ThemeInput as TextInput} from './Theme';
 import React from 'react';
-import {} from 'react-native';
+import { View } from 'react-native';
 export const policies = {
  Privacy: [
   ['Gather privacy policy','Effective October 10, 2026. This notice describes the Gather features in this release.'],

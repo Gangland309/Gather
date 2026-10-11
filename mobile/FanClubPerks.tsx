@@ -1,6 +1,5 @@
-import {ThemeView as View} from './Theme';
 import React,{useEffect,useRef,useState} from 'react';
-import {Linking,Pressable} from 'react-native';
+import {Linking,Pressable,View} from 'react-native';
 import {ThemeText as Text,ThemeInput as Input,useTheme} from './Theme';
 export type FanPerk={id?:string;title:string;description:string;memberDetails?:string;url?:string|null};
 type Api=<T>(path:string,method?:string,data?:unknown)=>Promise<T>;
