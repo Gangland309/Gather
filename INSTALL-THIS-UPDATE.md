@@ -1,3 +1,7 @@
+# Gather v0.9.16
+
+See CHANGELOG-v0.9.16.md for the black/icy-blue palette. Existing light preferences remain available; choose Dark in Appearance to try it.
+
 # New in this ZIP
 
 Moments, shareable lives, and a plain sign-in layout without the supplied picture. See MOMENTS-AND-LIVE-SHARING.md. Opt-in member maps remain included. Includes the previous tagging, Fan Clubs, gifts, wallets and battles updates.
