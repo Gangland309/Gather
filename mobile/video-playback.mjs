@@ -6,7 +6,8 @@ export function coordinateVideoPlayback(document){
   const onPlay=event=>{
    const active=event.target;
    if(active?.tagName!=='VIDEO')return;
-   for(const video of document.querySelectorAll('video'))if(video!==active&&!video.paused)video.pause();
+   document.dispatchEvent(new Event('gather-external-play'));
+   for(const video of document.querySelectorAll('video,audio'))if(video!==active&&!video.paused)video.pause();
   };
   state={users:0,onPlay};coordinators.set(document,state);
   document.addEventListener('play',onPlay,true);
