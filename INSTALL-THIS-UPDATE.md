@@ -1,8 +1,4 @@
-# New in this ZIP
-
-Full-screen sign-in artwork and opt-in in-app member maps. See MAP-UPDATE.md. Includes the previous tagging, Fan Clubs, gifts, wallets and battles updates.
-
-# Gather 0.9.5 — install this update
+# Gather 0.9.4 — install this update
 
 New: Fan Clubs let creators define member perks with private instructions and HTTPS links, open or application-based membership, and member-only posts. Your supplied purple/lime artwork now appears on sign-in and registration. See FAN-CLUBS-UPDATE.md.
 

@@ -63,9 +63,3 @@ TypeScript, Expo lint and web/iOS/Android exports are checked for this release. 
 94 automated tests pass. Fan-club checks cover summary-only previews via both club and Gathering APIs, approved-member perk details/links and post visibility, free membership, join/leave, application approval, owner-only perk/membership changes, moderator restrictions, notifications and unchanged-save deduplication, ban/removal, block/suspension exclusions, HTTPS/credential link validation, perk-count limits and rejected-write preservation. Existing tagging, battle, wallet and AI checks remain included.
 
 The uploaded PNG is copied unchanged into the application assets. TypeScript and Expo lint pass; final web/iOS/Android exports are regenerated for this complete release. Native signed installers, physical-device layouts, real-provider connectivity and production deployment are not verified.
-
-## 0.9.5 — member maps and sign-in background
-- 97 automated tests passed, including projection/polar clamping, date-line wrapping, dragging, visible tile bounds and the existing location consent/membership/expiry/deletion test.
-- TypeScript and Expo lint passed.
-- Web, iOS and Android bundle exports are checked before packaging. They are not signed store installers.
-- No real device, live tile-provider session, deployment or visual browser QA is claimed. Follow MAP-UPDATE.md device checks before rollout.
