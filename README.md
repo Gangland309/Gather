@@ -1,3 +1,7 @@
+# Latest release: Gather v0.9.20
+
+Original purple-and-lime colors restored. See CHANGELOG-v0.9.20.md and INSTALL-THIS-UPDATE.md.
+
 # Latest update: 0.9.5
 
 See MAP-UPDATE.md for member maps and full-screen sign-in artwork.

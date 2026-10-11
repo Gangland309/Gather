@@ -72,3 +72,10 @@ The uploaded PNG is copied unchanged into the application assets. TypeScript and
 
 ## Gather v0.9.17
 119 tests passed, including live thumbnail host control authorization, upload throttling, JPEG envelope validation, expiry, deletion and broadcast visibility. TypeScript and lint pass. All platform bundle exports are checked before packaging. Updated light palette and one-time theme preference reset remove the black app background. Real-camera snapshots, visual layout and phone testing remain pending; no deployment is claimed.
+
+## Gather v0.9.19
+120 tests passed. New API coverage checks owner membership, discover/joined separation, pending approval, accepted membership and leaving. TypeScript and lint passed; all platform bundle exports are verified before packaging. No production deployment or real phone/layout verification is claimed.
+
+
+## Gather v0.9.20
+Color and branding restoration only. TypeScript, lint and all platform bundle exports are checked before packaging. Existing 120-test result from v0.9.19 covers unchanged backend functionality. No real-phone, visual-layout or production-deployment verification is claimed.

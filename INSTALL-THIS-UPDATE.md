@@ -1,3 +1,11 @@
+# Gather v0.9.20
+
+Original purple-and-lime colors and logo restored; current features preserved. See CHANGELOG-v0.9.20.md.
+
+# Gather v0.9.19
+
+Your Gatherings and Discover Gatherings are now separate segments. See CHANGELOG-v0.9.19.md. Deploy server and client.
+
 # Gather v0.9.18
 
 Copper and teal in both Light and Dark, with matching logo/default G icons. Includes live thumbnails. See CHANGELOG-v0.9.18.md. Deploy server and client.
