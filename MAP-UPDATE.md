@@ -1,3 +1,5 @@
+Latest: 0.9.6 removes the full-screen sign-in artwork. The opt-in maps below remain included.
+
 # Gather 0.9.5 — Member maps and sign-in background
 
 Community → Map lets an approved member select a Gathering or Fan Club and view voluntarily shared member locations. The same map appears inside a group's location panel. Tap Load in-app map, drag to pan, use zoom buttons, and select a pin or Center on a member. Selected member details link to their profile and show snapshot time, expiry and accuracy.

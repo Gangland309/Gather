@@ -1,3 +1,4 @@
+import {createStories} from './stories.mjs';
 import {createMentions} from './mentions.mjs';
 import {createGC} from './gc.mjs';
 import {createRooms} from './rooms.mjs';
@@ -130,7 +131,8 @@ const mentions=createMentions({db,one,all,run,blocked,notify,requireThat,visible
 const pilot=createPilot({db,one,all,run,now,requireThat,textField,jsonBody,transaction,me,hash});
 const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me,notify,hash});
 const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash,mentionValidate:mentions.validate,mentionSend:mentions.send,disconnectGroupMember:(id,userId)=>rooms.disconnectGroupMember(id,userId)});
-const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost,blocked,me});
+const stories=createStories({db,one,all,run,now,requireThat,textField,jsonBody,blocked,profile});
+const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost,blocked,me,storyCanView:stories.canView});
 const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction,me,hash});
 const gcRoute=createGC({db,one,all,run,now,jsonBody,requireThat,textField,transaction,me,notify});
 const rooms=createRooms({db,one,all,run,now,jsonBody,requireThat,textField,blocked,notify,transaction,profile},live);
@@ -215,6 +217,7 @@ async function api(req,url) {
  const gcResult=await gcRoute(req,url,user);if(gcResult!==undefined)return gcResult;
  const roomResult=await rooms.route(req,url,user);if(roomResult!==undefined)return roomResult;
  const communityResult=await community.route(req,url,user);if(communityResult!==undefined)return communityResult;
+ const storyResult=await stories.route(req,url,user);if(storyResult!==undefined)return storyResult;
  const socialResult=await social(req,url,user);if(socialResult!==undefined)return socialResult;
  if(path==='/api/auth/logout' && method==='POST') { run('DELETE FROM sessions WHERE hash=?',hash(req.headers.authorization.slice(7))); return {ok:true}; }
  if(path==='/api/account/password'&&method==='POST'){const input=await jsonBody(req);requireThat(typeof input.currentPassword==='string'&&input.currentPassword.length<=128,400,'Enter your current password.');requireThat(typeof input.newPassword==='string'&&input.newPassword.length>=12&&input.newPassword.length<=128,400,'New password must contain 12–128 characters.');const candidate=await scrypt(input.currentPassword,user.salt,64);requireThat(timingSafeEqual(candidate,Buffer.from(user.password_hash,'hex')),403,'Current password is incorrect.');const salt=randomBytes(16).toString('hex'),value=(await scrypt(input.newPassword,salt,64)).toString('hex');transaction(()=>{run('UPDATE users SET password_hash=?,salt=? WHERE id=?',value,salt,user.id);run('DELETE FROM sessions WHERE user_id=? AND hash<>?',user.id,hash(req.headers.authorization.slice(7)));});return {ok:true};}
@@ -301,7 +304,7 @@ const mimeTypes={'.html':'text/html; charset=utf-8','.js':'application/javascrip
 const webDir=resolve(here,'../mobile/dist');
 export const server=createServer(async(req,res)=>{
  res.setHeader('X-Content-Type-Options','nosniff');
- res.setHeader('Referrer-Policy','no-referrer');
+ res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');
  try {
   const url=new URL(req.url,'http://localhost');
   if(url.pathname.startsWith('/api/')) {
@@ -319,7 +322,7 @@ export const server=createServer(async(req,res)=>{
    const viewer=req.headers.authorization?auth(req):{id:''};const name=url.pathname.split('/').at(-1);
    const media=one('SELECT * FROM uploads WHERE filename=?',name);
    requireThat(media&&!blocked(media.user_id,viewer.id),404,'Image not found.');
-   const allowed=media.user_id===viewer.id || all('SELECT id FROM gatherings WHERE cover_id=?',media.id).some(g=>{try{community.group(g.id,viewer.id,true);return true;}catch{return false;}}) || all("SELECT p.* FROM product_photos pp JOIN products p ON p.id=pp.product_id WHERE pp.media_id=? AND p.status='approved'",media.id).some(p=>!blocked(p.seller_id,viewer.id)) || (viewer.id&&me(viewer).isAdmin&&!!one("SELECT 1 FROM product_photos pp JOIN products p ON p.id=pp.product_id WHERE pp.media_id=? AND p.status='pending'",media.id)) || all("SELECT * FROM products WHERE media_id=? AND status='approved'",media.id).some(p=>!blocked(p.seller_id,viewer.id)) || (viewer.id&&me(viewer).isAdmin&&!!one("SELECT 1 FROM products WHERE media_id=? AND status='pending'",media.id)) || all('SELECT * FROM posts WHERE media_id=? AND hidden=0',media.id).some(p=>{try{visiblePost(p.id,viewer.id);return true;}catch{return false;}}) || all('SELECT * FROM users WHERE avatar_id=?',media.id).some(u=>community.canSee(u.id,viewer.id));
+   const allowed=media.user_id===viewer.id || all('SELECT * FROM stories WHERE media_id=?',media.id).some(s=>stories.canView(s,viewer.id)) || all('SELECT id FROM gatherings WHERE cover_id=?',media.id).some(g=>{try{community.group(g.id,viewer.id,true);return true;}catch{return false;}}) || all("SELECT p.* FROM product_photos pp JOIN products p ON p.id=pp.product_id WHERE pp.media_id=? AND p.status='approved'",media.id).some(p=>!blocked(p.seller_id,viewer.id)) || (viewer.id&&me(viewer).isAdmin&&!!one("SELECT 1 FROM product_photos pp JOIN products p ON p.id=pp.product_id WHERE pp.media_id=? AND p.status='pending'",media.id)) || all("SELECT * FROM products WHERE media_id=? AND status='approved'",media.id).some(p=>!blocked(p.seller_id,viewer.id)) || (viewer.id&&me(viewer).isAdmin&&!!one("SELECT 1 FROM products WHERE media_id=? AND status='pending'",media.id)) || all('SELECT * FROM posts WHERE media_id=? AND hidden=0',media.id).some(p=>{try{visiblePost(p.id,viewer.id);return true;}catch{return false;}}) || all('SELECT * FROM users WHERE avatar_id=?',media.id).some(u=>community.canSee(u.id,viewer.id));
    requireThat(allowed,404,'Image not found.');
    res.writeHead(200,{'Content-Type':media.mime,'Cache-Control':'no-store'});res.end(req.method==='HEAD'?undefined:readFileSync(resolve(dataDir,'media',name)));return;
   }

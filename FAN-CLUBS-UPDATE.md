@@ -1,3 +1,5 @@
+Latest: 0.9.6 removes the supplied picture from authentication screens. Sign-in artwork notes below describe the earlier release.
+
 # Gather 0.9.4 — Fan Clubs and sign-in artwork
 
 This update includes @username tagging, earlier gift totals and 1×/2×/3× battles, gifts, wallets and automatic AI page managers.

@@ -1,6 +1,10 @@
-# Gather 0.9.4 — install this update
+# New in this ZIP
 
-New: Fan Clubs let creators define member perks with private instructions and HTTPS links, open or application-based membership, and member-only posts. Your supplied purple/lime artwork now appears on sign-in and registration. See FAN-CLUBS-UPDATE.md.
+Moments, shareable lives, and a plain sign-in layout without the supplied picture. See MOMENTS-AND-LIVE-SHARING.md. Opt-in member maps remain included. Includes the previous tagging, Fan Clubs, gifts, wallets and battles updates.
+
+# Gather 0.9.6 — install this update
+
+New: Fan Clubs let creators define member perks with private instructions and HTTPS links, open or application-based membership, and member-only posts. The supplied sign-in artwork has been removed. See FAN-CLUBS-UPDATE.md.
 
 New: @username tagging in posts, captions, comments and Gatherings, with username suggestions, profile links and audience-aware notifications. See USER-TAGGING-UPDATE.md.
 
@@ -32,7 +36,7 @@ This cumulative update includes the previous Discord, phone-contact and default 
 1. Download and extract the ZIP. Open its `gather` folder.
 2. Back up your existing project and database first. End active broadcasts before deployment.
 3. Copy the contents of the new `gather` folder into your existing Gather repository, replacing matching source files. Keep your existing `.env`, `data`, uploads and Render persistent disk. Do not replace the repository with an empty folder or delete your data.
-4. Open GitHub Desktop. Review changes, commit with “Gather tagging, fan clubs and sign-in update”, then Push origin.
+4. Open GitHub Desktop. Review changes, commit with “Gather Moments, live sharing and sign-in fix”, then Push origin.
 5. In Render, use build command `npm ci && npm --prefix mobile ci --include=dev && npm run build:web` and start command `node server/server.mjs`. Keep `DATA_DIR=/var/data` and the existing persistent disk configuration. Wait for the deployment to become Live.
 6. Open https://gatherourworld.com and refresh. If the browser still shows old assets, use an InPrivate window. The server adds new database columns/tables automatically.
 7. Test with two accounts: content sharing on/off, a public and private Spark, podcast invitation acceptance and moderation, and location sharing into a Gathering both accounts have joined. Deny device location once to verify no share is created; share and then stop to verify it disappears for the other member.
@@ -43,7 +47,7 @@ For local use, in the `gather` folder run `npm ci`, `npm --prefix mobile ci`, th
 
 Live/podcasts require valid LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET in Render. The Admin live connection check verifies the room API; it does not verify camera, microphone or viewer connectivity. Video uploads and playback require Mux configuration. Podcasts are live sessions, not recorded episodes. Native live media currently opens the secure browser studio; moderator controls remain in the Gather screen. This ZIP contains source and Expo exports, not signed App Store/Play Store installers.
 
-65 automated tests pass, including audience filtering, sharing settings, location consent/membership/expiry/deletion, podcast capacity and moderator permissions. TypeScript and lint are checked. Actual provider streaming, physical device location permissions and eight simultaneous camera streams still require operator/device testing. GC payments/cashout and supplier fulfillment remain unfinished and disabled.
+101 automated tests pass, including audience filtering, sharing settings, location consent/membership/expiry/deletion, podcast capacity and moderator permissions. TypeScript and lint are checked. Actual provider streaming, physical device location permissions and eight simultaneous camera streams still require operator/device testing. GC payments/cashout and supplier fulfillment remain unfinished and disabled.
 
 For the upload progress bar and stalled upload diagnostics, see UPLOAD-FIX.md. After Render reports Live, refresh Gather on both devices to load the updated client.
 
