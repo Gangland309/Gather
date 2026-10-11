@@ -1,3 +1,9 @@
+# Latest validation: Gather v0.9.23
+
+126 automated tests passed. Voice-party authorization tests now verify microphone, screen_share and screen_share_audio grants, camera exclusion and approved-member access checks. Final TypeScript and Expo lint checks passed. Web, iOS and Android bundle exports passed.
+
+Screen capture, browser permission cancellation, remote screen rendering and shared audio have not been tested between real browsers. No deployment or real-phone QA was performed.
+
 # Latest validation: Gather v0.9.22
 
 126 automated tests passed; TypeScript, Expo lint, and web/iOS/Android bundle exports passed. The new recording test verifies host token authorization, shared notice visibility, input validation, expiry, stopping and preservation of the active live.

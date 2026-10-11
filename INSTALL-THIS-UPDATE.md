@@ -1,3 +1,9 @@
+# Latest release: Gather v0.9.23
+
+Gathering voice parties now support screen sharing in supported desktop browsers. See CHANGELOG-v0.9.23.md. Includes all previous updates.
+
+Deploy server and client together using the instructions below, preserving the Render disk, database and environment variables. Refresh Gather and rejoin the voice party to obtain updated permissions. Go to Gathering → Voice party → Start/Join → Share screen, then choose a tab, window or screen. Stop sharing leaves the voice party connected.
+
 # Latest release: Gather v0.9.22
 
 Host desktop recording controls, timer, local download and a shared recording notice. See CHANGELOG-v0.9.22.md. Includes v0.9.21 features. Deploy server and client together using the steps below; keep the existing Render database, persistent disk and environment variables.
