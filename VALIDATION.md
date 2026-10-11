@@ -1,3 +1,9 @@
+# Latest validation: Gather v0.9.28
+
+137 automated tests, TypeScript checks, Expo lint and web/iOS/Android bundle exports passed. Mobile header uses a fixed 56-point single row and 44-point Back/Post/Menu targets, with search and actions hidden inside expandable menu sections.
+
+No production deployment or physical-device QA performed. Browser visual QA could not run because no browser executable is installed. Check the mobile menu, keyboard/search results, navigation and landscape orientation after deployment.
+
 # Latest validation: Gather v0.9.27
 
 137 automated tests passed, including changing assistant setup, server authorization, offscreen/late playback and single/double tap arbitration. TypeScript and Expo lint passed. Web, iOS and Android bundle exports passed.

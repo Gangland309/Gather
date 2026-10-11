@@ -1,3 +1,9 @@
+# Latest release: Gather v0.9.28
+
+Mobile now has one 56-point header row: compact Gather logo and Find Your People, Back, Post (+) and Menu. Search, Add Friends and quick actions are inside expandable menu sections; search results no longer occupy the feed header. Menu scrolls independently and selecting a result closes it. Desktop layout and all v0.9.27 changes remain.
+
+Deploy server and client together using the instructions below. Keep your Render database and environment variables. Refresh after deployment. On mobile open ☰ → Search & Add Friends or Quick actions.
+
 # Latest release: Gather v0.9.27
 
 Chat Assistant Send now submits a nonempty message even if the initial connection check failed or was stale. Server setup, email verification and provider errors are shown; failed questions remain available to retry. Retry connection refreshes assistant status. Server authorization and opt-in remain enforced. Feed videos and Sparks pause after scrolling offscreen on web and native; returning does not automatically restart them. Tap the video picture once for fullscreen; double tap within 280 ms to like the post (never unlike). Bottom player controls remain accessible. Web uses an expanded fullscreen fallback if browser fullscreen is denied. Includes all v0.9.26 updates.
