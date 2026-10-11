@@ -1,3 +1,9 @@
+# Latest release: Gather v0.9.30
+
+Desktop feed video clicks now start playback directly in the click event, before the fullscreen tap delay. Removed the video-element hover handler that was blocked by the gesture overlay and could pause playback during fullscreen transitions. Inline paused videos show a play indicator; blocked/failed click attempts show errors. Single-tap fullscreen, double-tap likes, offscreen pause, minimal fullscreen and speaker boxes remain. Includes v0.9.29 updates.
+
+Deploy server and client together, preserving your Render disk, database and environment. Refresh the desktop browser after deployment. Click the video picture or use its inline play control. If it still fails, share the visible error and browser name; Mux/provider and real-device playback still require testing.
+
 # Latest release: Gather v0.9.29
 
 Fullscreen feed videos and Sparks now show only the video and a small high-contrast back arrow with a 44-point tap target at the upper left, positioned below safe-area insets. Player controls are hidden in fullscreen and restored inline. Double-tap likes remain available. Native uses a minimal fullscreen modal with Android Back support. Web supports browser fullscreen, expanded fallback and Escape. Lives, podcasts and voice parties use a small back arrow and a compact ⋯ menu in fullscreen. Room controls and speaker choices are tucked into that menu. Tap a speaker or shared-screen box to enlarge it; host/moderator featured-view rules remain enforced. All v0.9.28 changes remain.

@@ -55,3 +55,9 @@ export function pauseOffscreenVideo(video,Observer=globalThis.IntersectionObserv
  observer.observe(video);video.addEventListener('play',guard);
  return ()=>{observer.disconnect();video.removeEventListener('play',guard);};
 }
+
+// Call synchronously in the click handler, before waiting to distinguish taps.
+export function playVideoFromGesture(video,onError=()=>{}){
+ try{return Promise.resolve(video.play()).catch(error=>{onError(error?.name==='NotAllowedError'?'Your browser blocked playback. Use the player controls or allow media playback for Gather.':'Video could not start. Reload the video to refresh its connection.');});}
+ catch{onError('Video could not start. Reload the video to refresh its connection.');return Promise.resolve();}
+}

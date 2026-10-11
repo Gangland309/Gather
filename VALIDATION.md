@@ -1,3 +1,9 @@
+# Latest validation: Gather v0.9.30
+
+139 automated tests, TypeScript, Expo lint and web/iOS/Android bundle exports passed. New tests verify immediate click playback and visible errors for blocked/rejected attempts.
+
+No production deployment or actual desktop/Mux playback check performed. The browser executable was unavailable and its download failed. This patch fixes an identified overlay/hover interaction; it does not establish that production streams decode in every browser. Test a feed video and a Spark on desktop after deployment, including single-tap fullscreen, double-tap like, back-arrow return and scrolling offscreen.
+
 # Latest validation: Gather v0.9.29
 
 137 automated tests, TypeScript and Expo lint passed. Fullscreen video uses a small upper-left back arrow with a 44-point target; browser controls restore on return to inline playback, and native video fullscreen has Android Back handling. Live/podcast/voice-party fullscreen hides controls behind ⋯ without unmounting them, preserving recording and sound state. Speaker tapping and host-directed focus logic remain in place.

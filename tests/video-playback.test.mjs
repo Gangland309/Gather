@@ -52,3 +52,10 @@ test('single tap waits for double-tap window; double tap likes once and cancels 
  taps.tap();taps.tap();assert.equal(single,1);assert.equal(double,1);assert.equal(canceled,1);
  taps.tap();taps.dispose();assert.equal(canceled,2);
 });
+
+test('click playback starts immediately without waiting for the fullscreen double-tap timer',async()=>{
+ const {playVideoFromGesture}=await import('../mobile/video-playback.mjs');const video=new Video();const pending=playVideoFromGesture(video);assert.equal(video.plays,1);assert.equal(video.paused,false);await pending;
+});
+test('click playback reports browser blocks and synchronous failures instead of swallowing them',async()=>{
+ const {playVideoFromGesture}=await import('../mobile/video-playback.mjs');const video=new Video(),errors=[];video.play=()=>Promise.reject(Object.assign(new Error('private details'),{name:'NotAllowedError'}));await playVideoFromGesture(video,message=>errors.push(message));assert.match(errors[0],/browser blocked/);assert.equal(errors[0].includes('private details'),false);video.play=()=>{throw new Error('failure');};await playVideoFromGesture(video,message=>errors.push(message));assert.match(errors[1],/Reload the video/);
+});
