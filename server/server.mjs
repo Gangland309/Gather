@@ -1,3 +1,4 @@
+import {createAudio} from './audio.mjs';
 import {createChatAssistant} from './chat-assistant.mjs';
 import {createLinkPreviews} from './link-previews.mjs';
 import {createStories} from './stories.mjs';
@@ -117,7 +118,7 @@ function notify(target, actor, kind, postId=null, groupId=null) {const prefs=JSO
 function postView(p,viewer) {
  const user = one('SELECT * FROM users WHERE id=?',p.user_id);
  const upload = p.media_id ? one('SELECT * FROM uploads WHERE id=?',p.media_id) : null;
- return { original:p.original_id?postView(visiblePost(p.original_id,viewer),viewer):null, canShare:!!user.content_shareable&&(!p.original_id||!!one('SELECT u.content_shareable FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=?',p.original_id)?.content_shareable),id:p.id, videoId:p.video_id, audience:p.audience, groupId:p.group_id, pinned:!!p.pinned, body:p.body, mentions:mentions.resolve(p.body,p.user_id,viewer), createdAt:p.created_at, author:profile(user,viewer), mediaUrl:upload ? `/media/${upload.filename}` : null,
+ return { original:p.original_id?postView(visiblePost(p.original_id,viewer),viewer):null, canShare:!!user.content_shareable&&(!p.original_id||!!one('SELECT u.content_shareable FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=?',p.original_id)?.content_shareable),id:p.id, videoId:p.video_id, audioId:p.audio_id, audience:p.audience, groupId:p.group_id, pinned:!!p.pinned, body:p.body, mentions:mentions.resolve(p.body,p.user_id,viewer), createdAt:p.created_at, author:profile(user,viewer), mediaUrl:upload ? `/media/${upload.filename}` : null,
   likeCount:one('SELECT COUNT(*) n FROM likes l JOIN users u ON u.id=l.user_id WHERE l.post_id=? AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=u.id) OR (b.blocker_id=u.id AND b.blocked_id=?))',p.id,viewer,viewer).n,
   commentCount:one('SELECT COUNT(*) n FROM comments c WHERE c.post_id=? AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=c.user_id) OR (b.blocker_id=c.user_id AND b.blocked_id=?))',p.id,viewer,viewer).n,
   liked:!!one('SELECT 1 FROM likes WHERE user_id=? AND post_id=?',viewer,p.id) };
@@ -137,6 +138,7 @@ const pilot=createPilot({db,one,all,run,now,requireThat,textField,jsonBody,trans
 const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me,notify,hash});
 const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash,mentionValidate:mentions.validate,mentionSend:mentions.send,disconnectGroupMember:(id,userId)=>rooms.disconnectGroupMember(id,userId)});
 const stories=createStories({db,one,all,run,now,requireThat,textField,jsonBody,blocked,profile});
+const audio=createAudio({db,one,all,run,dataDir,requireThat,visiblePost,blocked,auth});
 const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost,blocked,me,storyCanView:stories.canView});
 const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction,me,hash});
 const gcRoute=createGC({db,one,all,run,now,jsonBody,requireThat,textField,transaction,me,notify});
@@ -206,6 +208,7 @@ async function api(req,url) {
  if(path==='/api/discord/callback'&&method==='GET'){limit(req,'discord-callback',30,60000);return discord.callback(url);}
  if(path.startsWith('/api/live')&&((method==='GET')||(method==='POST'&&(path.endsWith('/token')||path.endsWith('/end-browser')||path.endsWith('/thumbnail')||path.endsWith('/recording'))))){let optional=null;if(req.headers.authorization)optional=auth(req);limit(req,'live-view',optional?300:1200,60000,optional?.id);const result=await live.route(req,url,optional);if(result!==undefined)return result;}
  if(path.startsWith('/api/public/')&&method==='GET'){const parts=path.split('/'),id=parts[4];
+  if(parts[3]==='audio'){limit(req,'public-audio',60,60000);return audio.metadata(id,'',req);}
   if(parts[3]==='videos')return video.route(req,new URL(`/api/videos/${id}`,url),{id:''});
   if(parts[3]==='posts')return postView(visiblePost(Number(id),''),'');
   if(parts[3]==='profiles'){const u=one('SELECT * FROM users WHERE id=?',id);requireThat(u,404,'Profile not found.');if(parts[5]==='posts')return all('SELECT * FROM posts WHERE user_id=? AND hidden=0 AND group_id IS NULL ORDER BY id DESC LIMIT 50',id).filter(p=>{try{visiblePost(p.id,'');return true;}catch{return false;}}).map(p=>postView(p,''));return profile(u,'');}}
@@ -221,6 +224,9 @@ async function api(req,url) {
  const assistantResult=await chatAssistant.route(req,url,user);if(assistantResult!==undefined)return assistantResult;
  const discordResult=await discord.route(req,url,user);if(discordResult!==undefined)return discordResult;
  const pilotResult=await pilot.route(req,url,user);if(pilotResult!==undefined)return pilotResult;
+ if(path==='/api/audio'&&method==='POST')limit(req,'audio-upload',5,86400000,user.id);
+ if(method==='GET'&&path.startsWith('/api/audio/'))limit(req,'audio-links',60,60000,user.id);
+ const audioResult=await audio.route(req,url,user);if(audioResult!==undefined)return audioResult;
  const videoResult=await video.route(req,url,user);if(videoResult!==undefined)return videoResult;
  const liveResult=await live.route(req,url,user);if(liveResult!==undefined)return liveResult;
  const gcResult=await gcRoute(req,url,user);if(gcResult!==undefined)return gcResult;
@@ -276,18 +282,18 @@ async function api(req,url) {
   run('INSERT INTO uploads(id,user_id,filename,mime) VALUES(?,?,?,?)',id,user.id,filename,mime);
   return {id,url:`/media/${filename}`};
  }
- if(/^\/api\/posts\/\d+$/.test(path)&&method==='PATCH'){const id=Number(path.split('/').pop()),input=await jsonBody(req),post=one('SELECT * FROM posts WHERE id=? AND user_id=? AND hidden=0',id,user.id);requireThat(post,404,'Post not found.');const body=textField(input.body,'Caption',2000);requireThat(body||post.media_id||post.video_id,400,'A text post cannot be empty.');mentions.validate(body);transaction(()=>{run('UPDATE posts SET body=? WHERE id=?',body,id);mentions.send(post,body,user.id);});return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);}
+ if(/^\/api\/posts\/\d+$/.test(path)&&method==='PATCH'){const id=Number(path.split('/').pop()),input=await jsonBody(req),post=one('SELECT * FROM posts WHERE id=? AND user_id=? AND hidden=0',id,user.id);requireThat(post,404,'Post not found.');const body=textField(input.body,'Caption',2000);requireThat(body||post.media_id||post.video_id||post.audio_id,400,'A text post cannot be empty.');mentions.validate(body);transaction(()=>{run('UPDATE posts SET body=? WHERE id=?',body,id);mentions.send(post,body,user.id);});return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);}
  if(path==='/api/posts' && method==='POST') {
-  const input=await jsonBody(req),body=textField(input.body,'Post',2000),mediaId=input.mediaId??null,videoId=input.videoId??null;
-  requireThat(body || mediaId || videoId,400,'Write something or add a photo.');
+  const input=await jsonBody(req),body=textField(input.body,'Post',2000),mediaId=input.mediaId??null,videoId=input.videoId??null,audioId=input.audioId??null;
+  requireThat(body || mediaId || videoId || audioId,400,'Write something or add media.');
   if(mediaId) requireThat(typeof mediaId==='string' && one('SELECT 1 FROM uploads WHERE id=? AND user_id=?',mediaId,user.id),400,'Photo not found.');
-  requireThat(!(mediaId&&videoId),400,'Choose one photo or video per post.');if(videoId)requireThat(one("SELECT 1 FROM videos WHERE id=? AND user_id=? AND status='ready'",videoId,user.id),400,'Video is not ready.');
+  requireThat([mediaId,videoId,audioId].filter(Boolean).length<=1,400,'Choose one photo, video or MP3 per post.');if(audioId)requireThat(typeof audioId==='string'&&one('SELECT 1 FROM audio_uploads WHERE id=? AND user_id=?',audioId,user.id),400,'Your audio upload was not found.');if(videoId)requireThat(one("SELECT 1 FROM videos WHERE id=? AND user_id=? AND status='ready'",videoId,user.id),400,'Video is not ready.');
   const audience=input.audience??'followers',groupId=input.groupId??null;
   requireThat(['self','friends','public','followers','gathering'].includes(audience),400,'Choose a post audience.');
   if(audience==='public'&&user.is_private)requireThat(input.confirmPublic===true,400,'Confirm this post will be visible to everyone.');
   if(audience==='gathering'){const g=community.group(groupId,user.id,true);requireThat(g.member,403,'Join before posting.');}else requireThat(groupId===null,400,'Select Gathering audience for group posts.');
   mentions.validate(body);
-  const id=transaction(()=>{const id=Number(run('INSERT INTO posts(user_id,body,media_id,created_at,audience,group_id,video_id) VALUES(?,?,?,?,?,?,?)',user.id,body,mediaId,now(),audience,groupId,videoId).lastInsertRowid);mentions.send(one('SELECT * FROM posts WHERE id=?',id),body,user.id);return id;});
+  const id=transaction(()=>{const id=Number(run('INSERT INTO posts(user_id,body,media_id,created_at,audience,group_id,video_id,audio_id) VALUES(?,?,?,?,?,?,?,?)',user.id,body,mediaId,now(),audience,groupId,videoId,audioId).lastInsertRowid);mentions.send(one('SELECT * FROM posts WHERE id=?',id),body,user.id);return id;});
   if(groupId)for(const member of all("SELECT user_id FROM gathering_members WHERE group_id=? AND status='approved'",groupId))if(!blocked(member.user_id,user.id))notify(member.user_id,user.id,one('SELECT kind FROM gatherings WHERE id=?',groupId)?.kind==='fanclub'?'fanclub_post':'gathering_post',id,groupId);
   return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);
  }
@@ -335,6 +341,7 @@ export const server=createServer(async(req,res)=>{
    if(req.method==='OPTIONS'){res.setHeader('Access-Control-Allow-Methods','GET,POST,PUT,PATCH,DELETE,OPTIONS');res.setHeader('Access-Control-Allow-Headers','Authorization,Content-Type');res.writeHead(204);res.end();return;}
    const result=await api(req,url);if(url.pathname==='/api/discord/callback'){res.setHeader('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'");res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<!doctype html><html><meta name=viewport content="width=device-width,initial-scale=1"><title>Gather Discord connection</title><body style="font-family:system-ui;padding:32px;max-width:600px;margin:auto"><h1>Gather + Discord</h1><p>'+result.message+'</p><p>Return to Gather → My account → Discord. Your account is linked only after you confirm there.</p></body></html>');return;}res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(result));return;
   }
+  if(await audio.stream(req,res,url))return;
   requireThat(req.method==='GET' || req.method==='HEAD',405,'Method not allowed.');
   if(url.pathname==='/brand/gather-avatar.png'){res.writeHead(200,{'Content-Type':'image/png','Cache-Control':'public, max-age=3600'});res.end(req.method==='HEAD'?undefined:readFileSync(resolve(here,'../mobile/assets/gather-default-avatar.png')));return;}
   if(/^\/media\/[a-f0-9-]+\.(jpg|png|webp)$/.test(url.pathname)) {

@@ -1,3 +1,15 @@
+# Latest release: Gather v0.9.32
+
+Fresh ivory/plum/coral/lilac theme in light mode and a matching plum/coral dark mode. New typographic Gather wordmark and matching default G avatar, softer feed cards, rounded feature chips, clearer navigation symbols, subtle pressed feedback and a circular quick-post button. Mobile header stays compact; search remains inside its menu, fullscreen stays minimal, and MP3 uploads and all earlier features remain. This is a styling update, not a reproduction of illustrative people, counts or features in the concept image. Desktop search is integrated into the header, live previews sit together in a horizontal strip, and the right rail shows actual joined Gatherings and friend suggestions. Quick actions are tucked into the navigation. Existing native launcher/favicon image assets remain unchanged.
+
+Deploy server and client together following the steps below. Keep your database, disk and environment variables. Refresh after deployment; both light and dark themes use the new palette.
+
+# Latest release: Gather v0.9.31
+
+MP3 uploads for Music and Audiobook posts, with titles, rights confirmation, upload progress, duration validation and players for web/iOS/Android. Playback includes pause, seeking, 15-second skip and speed options. Audio appears in feed/profile/shared posts and Gatherings, using existing post audiences. Byte-range streams use expiring session-bound links and recheck visibility; public shared posts have public playback links that stop working if the post is removed or no longer public. All v0.9.30 updates remain.
+
+Deploy server and client together. Run npm ci at the project root and npm --prefix mobile ci when building locally. Keep Render environment variables, database and persistent disk. Audio is stored under DATA_DIR/audio; it does not require Mux. See MP3-UPLOADS.md for posting and storage details. Native builds require the new audio/document-picker modules.
+
 # Latest release: Gather v0.9.30
 
 Desktop feed video clicks now start playback directly in the click event, before the fullscreen tap delay. Removed the video-element hover handler that was blocked by the gesture overlay and could pause playback during fullscreen transitions. Inline paused videos show a play indicator; blocked/failed click attempts show errors. Single-tap fullscreen, double-tap likes, offscreen pause, minimal fullscreen and speaker boxes remain. Includes v0.9.29 updates.

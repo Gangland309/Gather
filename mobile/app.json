@@ -2,7 +2,7 @@
   "expo": {
     "name": "Gather",
     "slug": "gather-platform",
-    "version": "0.9.30",
+    "version": "0.9.32",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -53,7 +53,16 @@
           "isAndroidForegroundServiceEnabled": false
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-document-picker",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Gather uses your microphone when you record videos with sound or join a live broadcast.",
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ]
     ],
     "scheme": "gather-dev"
   }

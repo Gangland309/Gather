@@ -1,3 +1,15 @@
+# Latest validation: Gather v0.9.32
+
+149 automated tests passed. TypeScript, Expo lint and web/iOS/Android bundle exports passed. Changes use existing authenticated search, Gathering and friend-request APIs. Side rail and live previews use real responses; no sample counts or fictional members are inserted. Existing private content and admin guards remain.
+
+The generated design board is a concept preview, not a screenshot. Browser visual QA and physical-phone layout testing were not performed. No deployment was performed. Test desktop header search/popups, joined-Gathering navigation, friend requests, mobile menu, light/dark modes and fullscreen after deployment. Existing native launcher and favicon raster assets remain unchanged; the visible app wordmark and default avatar use the new style.
+
+# Latest validation: Gather v0.9.31
+
+149 automated tests passed, including ten new audio tests with a generated MP3 fixture: real upload, MP3 validation, rights/login checks, foreign-upload rejection, private/public access, range and HEAD streams, logout revocation, deleted-post revocation, unposted-file deletion and upload limits. TypeScript and Expo lint passed. Web, iOS and Android bundle exports passed.
+
+No production deployment or physical-phone/browser audio playback QA was performed. Native app binaries must be rebuilt for the added audio/document-picker modules. Confirm Render persistent disk and PUBLIC_ORIGIN configuration, then test upload/play/seek/speed with two accounts and each audience. Desktop video playback from prior updates remains unverified in a real browser.
+
 # Latest validation: Gather v0.9.30
 
 139 automated tests, TypeScript, Expo lint and web/iOS/Android bundle exports passed. New tests verify immediate click playback and visible errors for blocked/rejected attempts.
