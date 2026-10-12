@@ -55,6 +55,15 @@ try{
   for(let i=0;i<4;i++)assert.equal((await upload(q.token)).status,200);
   assert.equal((await upload(q.token)).status,429);
  });
+ await test('cover art is owner-controlled and protected by the audio audience and playback grant',async()=>{
+  const owner=await account('cover_owner'),other=await account('cover_other');const image=await api('/uploads',owner.token,'POST',{base64:'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6B9sAAAAASUVORK5CYII='});assert.equal(image.status,200);
+  assert.equal((await upload(other.token,mp3,'title=Book&kind=audiobook&rights=true&coverId='+image.data.id)).status,400);
+  const a=await upload(owner.token,mp3,'title=Book&kind=audiobook&rights=true&coverId='+image.data.id);assert.equal(a.status,200);let info=await api('/audio/'+a.data.id,owner.token);assert.ok(info.data.coverUrl);assert.equal((await fetch(info.data.coverUrl)).headers.get('content-type'),'image/png');
+  assert.equal((await fetch(base+'/audio/'+a.data.id+'/cover')).status,404);assert.equal((await api('/public/audio/'+a.data.id)).status,404);
+  assert.equal((await api('/audio/'+a.data.id+'/cover',other.token,'PATCH',{coverId:null})).status,404);
+  assert.equal((await api('/audio/'+a.data.id+'/cover',owner.token,'PATCH',{coverId:null})).status,200);assert.equal((await fetch(info.data.coverUrl)).status,404);
+  await api('/audio/'+a.data.id+'/cover',owner.token,'PATCH',{coverId:image.data.id});await api('/posts',owner.token,'POST',{body:'',audioId:a.data.id,audience:'public',confirmPublic:true});info=await api('/public/audio/'+a.data.id);assert.equal((await fetch(info.data.coverUrl)).status,200);assert.equal((await api('/audio/'+a.data.id+'/cover',owner.token,'PATCH',{coverId:null})).status,409);
+ });
  await test('range parser accepts suffix/open ranges and rejects multi-range and invalid bounds',()=>{
   assert.deepEqual(audioRange('bytes=-5',10),{start:5,end:9,partial:true});assert.deepEqual(audioRange('bytes=7-',10),{start:7,end:9,partial:true});assert.deepEqual(audioRange('bytes=2-999',10),{start:2,end:9,partial:true});for(const h of ['bytes=5-2','bytes=-0','bytes=1-2,4-5','bytes=999-','bytes=-','bytes=9007199254740992-'])assert.equal(audioRange(h,10),null);
  });

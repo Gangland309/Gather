@@ -11,6 +11,15 @@ const call=async(path,user,method='GET',body)=>{const r=await fetch(base+'/api'+
 async function account(name,isPrivate=false){const r=await call('/auth/register',null,'POST',{username:name,email:`${name}@example.test`,displayName:name,password:'Strong-password-2026!',ageConfirmed:true,agreedRules:true,isPrivate});assert.equal(r.status,200,JSON.stringify(r.data));db.prepare('UPDATE users SET email_verified=1 WHERE id=?').run(r.data.user.id);return r.data;}
 const a=await account('alice',true),b=await account('bob'),c=await account('carol'),owner=await account('owner');
 try{
+ await test('dedicated Gathering posting forces the selected audience, preserves content and enforces membership',async()=>{
+  const host=await account('group_post_host'),member=await account('group_post_member'),stranger=await account('group_post_stranger');
+  const g=(await call('/gatherings',host,'POST',{name:'Posting circle',description:'Ideas',topic:'Ideas',rules:'Be respectful',isPrivate:false})).data;
+  assert.equal((await call(`/gatherings/${g.id}/posts`,stranger,'POST',{body:'No membership'})).status,403);
+  await call(`/gatherings/${g.id}/join`,member,'POST',{});
+  const posted=await call(`/gatherings/${g.id}/posts`,member,'POST',{body:'My idea for this group',audience:'public',groupId:999});assert.equal(posted.status,200,JSON.stringify(posted.data));assert.equal(posted.data.groupId,g.id);assert.equal(posted.data.audience,'gathering');
+  assert.ok((await call(`/gatherings/${g.id}/posts`,host)).data.some(p=>p.id===posted.data.id&&p.body==='My idea for this group'));
+  assert.equal((await call(`/gatherings/${g.id}/posts`,member,'POST',{body:''})).status,400);
+ });
  await test('global search respects audiences, blocks, exact hashtags and literal wildcards',async()=>{
  const x=await account('searcher'),y=await account('searchviewer');
  const publicPost=(await call('/posts',x,'POST',{body:'SearchUnique #Garden and 100% harvest',audience:'public'})).data;

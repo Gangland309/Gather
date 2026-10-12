@@ -1,7 +1,7 @@
 import React,{createContext,useContext,useEffect,useState} from 'react';
 import {Platform,useColorScheme,Text as NativeText,TextInput as NativeInput,StyleSheet} from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-export const lightColors={background:'#fff8f1',surface:'#ffffff',line:'#e9e0e8',ink:'#382047',muted:'#74627d',accent:'#ff5d73',accentText:'#ad2345',dark:'#30163d',red:'#b42342',lime:'#ffca69',tint:'#eee5fa'};
+export const lightColors={background:'#ffffff',surface:'#ffffff',line:'#e9e0e8',ink:'#382047',muted:'#74627d',accent:'#ff5d73',accentText:'#ad2345',dark:'#30163d',red:'#b42342',lime:'#ffca69',tint:'#eee5fa'};
 export type Palette=typeof lightColors;
 const darkColors:Palette={background:'#21162c',surface:'#302039',line:'#51405f',ink:'#fff5f0',muted:'#cbbdd3',accent:'#ff8094',accentText:'#ff9db0',dark:'#30163d',red:'#ffa1b6',lime:'#ffce7a',tint:'#44304e'};
 type Choice='system'|'light'|'dark';

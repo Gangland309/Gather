@@ -8,6 +8,7 @@ export function createChatAssistant({db,one,run,transaction,jsonBody,requireThat
  const configured=()=>!!process.env.OPENAI_API_KEY?.trim()||!!testProvider;
  const model=()=>process.env.CHAT_ASSISTANT_MODEL?.trim()||'gpt-5-mini';
  async function route(req,url,user){if(!url.pathname.startsWith('/api/assistant'))return;
+  if(process.env.NODE_ENV!=='test'){requireThat(false,410,'Gather Assistant has been removed for now.');}
   requireThat(user,401,'Sign in.');
   if(url.pathname==='/api/assistant/config'&&req.method==='GET')return {enabled:enabled()&&configured()};
   if(url.pathname!=='/api/assistant/chat'||req.method!=='POST')return;

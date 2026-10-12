@@ -114,7 +114,21 @@ function profile(user, viewer) {
 function me(user) { return {...profile(user,user.id), emailVerified:!!user.email_verified, verificationRequired, isAdmin:!!adminEmail && user.email===adminEmail && (!verificationRequired || !!user.email_verified)}; }
 function blocked(a,b) { return !!one('SELECT 1 FROM blocks WHERE (blocker_id=? AND blocked_id=?) OR (blocker_id=? AND blocked_id=?)',a,b,b,a); }
 function visiblePost(id, viewer) { const post = one('SELECT * FROM posts WHERE id=? AND hidden=0',id); requireThat(post && community.canPost(post,viewer) && (!post.original_id || (()=>{const original=one('SELECT * FROM posts WHERE id=? AND hidden=0',post.original_id);return original && community.canPost(original,viewer);})()),404,'Post not found.'); return post; }
-function notify(target, actor, kind, postId=null, groupId=null) {const prefs=JSON.parse(one('SELECT notification_prefs FROM users WHERE id=?',target)?.notification_prefs||'{}');const category=(kind.startsWith('gathering')||kind.startsWith('fanclub'))?'gatherings':kind.startsWith('live')?'live':kind.startsWith('message')?'messages':kind.startsWith('support')?'support':'social';if(prefs[category]===false)return; if(target!==actor) run('INSERT INTO notifications(user_id,actor_id,kind,post_id,created_at,group_id) VALUES(?,?,?,?,?,?)',target,actor,kind,postId,now(),groupId); }
+function publishPost(user,input){
+  const body=textField(input.body,'Post',2000),mediaId=input.mediaId??null,videoId=input.videoId??null,audioId=input.audioId??null;
+  requireThat(body || mediaId || videoId || audioId,400,'Write something or add media.');
+  if(mediaId) requireThat(typeof mediaId==='string' && one('SELECT 1 FROM uploads WHERE id=? AND user_id=?',mediaId,user.id),400,'Photo not found.');
+  requireThat([mediaId,videoId,audioId].filter(Boolean).length<=1,400,'Choose one photo, video or MP3 per post.');if(audioId)requireThat(typeof audioId==='string'&&one('SELECT 1 FROM audio_uploads WHERE id=? AND user_id=?',audioId,user.id),400,'Your audio upload was not found.');if(videoId)requireThat(one("SELECT 1 FROM videos WHERE id=? AND user_id=? AND status='ready'",videoId,user.id),400,'Video is not ready.');
+  const audience=input.audience??'followers',groupId=input.groupId??null;
+  requireThat(['self','friends','public','followers','gathering'].includes(audience),400,'Choose a post audience.');
+  if(audience==='public'&&user.is_private)requireThat(input.confirmPublic===true,400,'Confirm this post will be visible to everyone.');
+  if(audience==='gathering'){const g=community.group(groupId,user.id,true);requireThat(g.member,403,'Join before posting.');}else requireThat(groupId===null,400,'Select Gathering audience for group posts.');
+  mentions.validate(body);
+  const id=transaction(()=>{const id=Number(run('INSERT INTO posts(user_id,body,media_id,created_at,audience,group_id,video_id,audio_id) VALUES(?,?,?,?,?,?,?,?)',user.id,body,mediaId,now(),audience,groupId,videoId,audioId).lastInsertRowid);mentions.send(one('SELECT * FROM posts WHERE id=?',id),body,user.id);return id;});
+  if(groupId)for(const member of all("SELECT user_id FROM gathering_members WHERE group_id=? AND status='approved'",groupId))if(!blocked(member.user_id,user.id))notify(member.user_id,user.id,one('SELECT kind FROM gatherings WHERE id=?',groupId)?.kind==='fanclub'?'fanclub_post':'gathering_post',id,groupId);
+  return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);
+}
+function notify(target, actor, kind, postId=null, groupId=null, liveId=null) {const prefs=JSON.parse(one('SELECT notification_prefs FROM users WHERE id=?',target)?.notification_prefs||'{}');const category=(kind.startsWith('gathering')||kind.startsWith('fanclub'))?'gatherings':kind.startsWith('live')?'live':kind.startsWith('message')?'messages':kind.startsWith('support')?'support':'social';if(prefs[category]===false)return; if(target!==actor) run('INSERT INTO notifications(user_id,actor_id,kind,post_id,created_at,group_id,live_id) VALUES(?,?,?,?,?,?,?)',target,actor,kind,postId,now(),groupId,liveId); }
 function postView(p,viewer) {
  const user = one('SELECT * FROM users WHERE id=?',p.user_id);
  const upload = p.media_id ? one('SELECT * FROM uploads WHERE id=?',p.media_id) : null;
@@ -136,11 +150,11 @@ if(!all('PRAGMA table_info(notifications)').some(v=>v.name==='group_id'))db.exec
 const mentions=createMentions({db,one,all,run,blocked,notify,requireThat,visiblePost});
 const pilot=createPilot({db,one,all,run,now,requireThat,textField,jsonBody,transaction,me,hash});
 const social=createSocial({db,one,all,run,now,requireThat,textField,blocked,profile,visiblePost,postView,jsonBody,transaction,me,notify,hash});
-const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash,mentionValidate:mentions.validate,mentionSend:mentions.send,disconnectGroupMember:(id,userId)=>rooms.disconnectGroupMember(id,userId)});
+const community=createCommunity({db,one,all,run,now,requireThat,textField,blocked,profile,postView,jsonBody,transaction,me,notify,hash,mentionValidate:mentions.validate,mentionSend:mentions.send,publishPost,disconnectGroupMember:(id,userId)=>rooms.disconnectGroupMember(id,userId)});
 const stories=createStories({db,one,all,run,now,requireThat,textField,jsonBody,blocked,profile});
 const audio=createAudio({db,one,all,run,dataDir,requireThat,visiblePost,blocked,auth});
 const video=createVideo({db,one,all,run,now,jsonBody,requireThat,visiblePost,blocked,me,storyCanView:stories.canView});
-const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction,me,hash});
+export const live=createLive({db,one,all,run,now,jsonBody,requireThat,textField,blocked,profile,notify,transaction,me,hash});
 const gcRoute=createGC({db,one,all,run,now,jsonBody,requireThat,textField,transaction,me,notify});
 const rooms=createRooms({db,one,all,run,now,jsonBody,requireThat,textField,blocked,notify,transaction,profile},live);
 export const discord=createDiscord({db,one,all,run,hash,jsonBody,requireThat,transaction,blocked,me});
@@ -217,7 +231,7 @@ async function api(req,url) {
  if(method!=='GET' && !['/api/auth/logout','/api/support','/api/presence'].includes(path) && verificationRequired) requireThat(user.email_verified,403,'Verify your email before posting or interacting.');
  if(method!=='GET') limit(req,'write',120,60000,user.id);
  if(path==='/api/contacts'&&method==='POST')limit(req,'contacts',5,86400000,user.id);
- if(method!=='GET'){if(path==='/api/posts')limit(req,'new-post',30,600000,user.id);if(path.endsWith('/chat'))limit(req,'live-chat',30,60000,user.id);if(path.endsWith('/comments'))limit(req,'new-comment',30,600000,user.id);if(path==='/api/support'||path==='/api/reports'||path.endsWith('/report'))limit(req,'reports-support',10,3600000,user.id);}
+ if(method!=='GET'){if(path==='/api/posts'||/^\/api\/gatherings\/\d+\/posts$/.test(path))limit(req,'new-post',30,600000,user.id);if(path.endsWith('/chat'))limit(req,'live-chat',30,60000,user.id);if(path.endsWith('/comments'))limit(req,'new-comment',30,600000,user.id);if(path==='/api/support'||path==='/api/reports'||path.endsWith('/report'))limit(req,'reports-support',10,3600000,user.id);}
  if(path==='/api/discord/connect'&&method==='POST')limit(req,'discord-connect',10,600000,user.id);
  if(method==='GET'&&/^\/api\/posts\/\d+\/link-previews$/.test(path)){const post=visiblePost(Number(path.split('/')[3]),user.id);limit(req,'link-previews',100,60000,user.id);return {previews:await linkPreviews(post.body)};}
  if(path==='/api/assistant/chat')limit(req,'assistant-chat',4,60000,user.id);
@@ -283,20 +297,7 @@ async function api(req,url) {
   return {id,url:`/media/${filename}`};
  }
  if(/^\/api\/posts\/\d+$/.test(path)&&method==='PATCH'){const id=Number(path.split('/').pop()),input=await jsonBody(req),post=one('SELECT * FROM posts WHERE id=? AND user_id=? AND hidden=0',id,user.id);requireThat(post,404,'Post not found.');const body=textField(input.body,'Caption',2000);requireThat(body||post.media_id||post.video_id||post.audio_id,400,'A text post cannot be empty.');mentions.validate(body);transaction(()=>{run('UPDATE posts SET body=? WHERE id=?',body,id);mentions.send(post,body,user.id);});return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);}
- if(path==='/api/posts' && method==='POST') {
-  const input=await jsonBody(req),body=textField(input.body,'Post',2000),mediaId=input.mediaId??null,videoId=input.videoId??null,audioId=input.audioId??null;
-  requireThat(body || mediaId || videoId || audioId,400,'Write something or add media.');
-  if(mediaId) requireThat(typeof mediaId==='string' && one('SELECT 1 FROM uploads WHERE id=? AND user_id=?',mediaId,user.id),400,'Photo not found.');
-  requireThat([mediaId,videoId,audioId].filter(Boolean).length<=1,400,'Choose one photo, video or MP3 per post.');if(audioId)requireThat(typeof audioId==='string'&&one('SELECT 1 FROM audio_uploads WHERE id=? AND user_id=?',audioId,user.id),400,'Your audio upload was not found.');if(videoId)requireThat(one("SELECT 1 FROM videos WHERE id=? AND user_id=? AND status='ready'",videoId,user.id),400,'Video is not ready.');
-  const audience=input.audience??'followers',groupId=input.groupId??null;
-  requireThat(['self','friends','public','followers','gathering'].includes(audience),400,'Choose a post audience.');
-  if(audience==='public'&&user.is_private)requireThat(input.confirmPublic===true,400,'Confirm this post will be visible to everyone.');
-  if(audience==='gathering'){const g=community.group(groupId,user.id,true);requireThat(g.member,403,'Join before posting.');}else requireThat(groupId===null,400,'Select Gathering audience for group posts.');
-  mentions.validate(body);
-  const id=transaction(()=>{const id=Number(run('INSERT INTO posts(user_id,body,media_id,created_at,audience,group_id,video_id,audio_id) VALUES(?,?,?,?,?,?,?,?)',user.id,body,mediaId,now(),audience,groupId,videoId,audioId).lastInsertRowid);mentions.send(one('SELECT * FROM posts WHERE id=?',id),body,user.id);return id;});
-  if(groupId)for(const member of all("SELECT user_id FROM gathering_members WHERE group_id=? AND status='approved'",groupId))if(!blocked(member.user_id,user.id))notify(member.user_id,user.id,one('SELECT kind FROM gatherings WHERE id=?',groupId)?.kind==='fanclub'?'fanclub_post':'gathering_post',id,groupId);
-  return postView(one('SELECT * FROM posts WHERE id=?',id),user.id);
- }
+ if(path==='/api/posts' && method==='POST') return publishPost(user,await jsonBody(req));
  if(path==='/api/posts' && method==='GET') {
   const before=Number(url.searchParams.get('before') || Number.MAX_SAFE_INTEGER);
   requireThat(Number.isSafeInteger(before) && before>0,400,'Invalid cursor.');
@@ -313,7 +314,7 @@ async function api(req,url) {
   if(m[2]==='comments' && method==='POST') {const input=await jsonBody(req);const body=textField(input.body,'Comment',1000,1);mentions.validate(body);transaction(()=>{const commentId=Number(run('INSERT INTO comments(post_id,user_id,body,created_at) VALUES(?,?,?,?)',id,user.id,body,now()).lastInsertRowid);mentions.send(post,body,user.id,commentId);notify(post.user_id,user.id,'comment',id);});return {ok:true};}
   if(m[2]==='report' && method==='POST') {const input=await jsonBody(req);run('INSERT OR IGNORE INTO reports(reporter_id,post_id,reason,created_at) VALUES(?,?,?,?)',user.id,id,textField(input.reason,'Reason',500,3),now());return {ok:true};}
  }
- if(path==='/api/notifications' && method==='GET') return all(`SELECT n.*,u.username,u.display_name FROM notifications n JOIN users u ON u.id=n.actor_id LEFT JOIN posts p ON p.id=n.post_id WHERE n.user_id=? AND (n.post_id IS NULL OR p.hidden=0) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=n.actor_id) OR (b.blocker_id=n.actor_id AND b.blocked_id=?)) ORDER BY n.id DESC LIMIT 100`,user.id,user.id,user.id).filter(n=>{if(n.group_id){try{const g=community.group(n.group_id,user.id);if(g.kind==='fanclub'&&!g.member)return false;}catch{return false;}}if(!n.post_id)return true;try{visiblePost(n.post_id,user.id);return true;}catch{return false;}}).map(n=>({id:n.id,actorId:n.actor_id,kind:n.kind,groupId:n.group_id,username:n.username,displayName:n.display_name,postId:n.post_id,createdAt:n.created_at,seen:!!n.seen}));
+ if(path==='/api/notifications' && method==='GET'){live.pruneNotifications();return all(`SELECT n.*,u.username,u.display_name FROM notifications n JOIN users u ON u.id=n.actor_id LEFT JOIN posts p ON p.id=n.post_id WHERE n.user_id=? AND (n.post_id IS NULL OR p.hidden=0) AND NOT EXISTS(SELECT 1 FROM blocks b WHERE (b.blocker_id=? AND b.blocked_id=n.actor_id) OR (b.blocker_id=n.actor_id AND b.blocked_id=?)) ORDER BY n.id DESC LIMIT 100`,user.id,user.id,user.id).filter(n=>{if(n.group_id){try{const g=community.group(n.group_id,user.id);if(g.kind==='fanclub'&&!g.member)return false;}catch{return false;}}if(!n.post_id)return true;try{visiblePost(n.post_id,user.id);return true;}catch{return false;}}).map(n=>({id:n.id,actorId:n.actor_id,kind:n.kind,groupId:n.group_id,liveId:n.live_id,expired:!!n.expired,username:n.username,displayName:n.display_name,postId:n.post_id,createdAt:n.created_at,seen:!!n.seen}));}
  if(path==='/api/notifications/read' && method==='POST') {const input=req.headers['content-type']?await jsonBody(req):{};if(input.ids!==undefined){requireThat(Array.isArray(input.ids)&&input.ids.length<=100&&input.ids.every(id=>Number.isSafeInteger(id)&&id>0),400,'Choose valid notification IDs.');transaction(()=>{for(const id of input.ids)run('UPDATE notifications SET seen=1 WHERE user_id=? AND id=?',user.id,id);});}else run('UPDATE notifications SET seen=1 WHERE user_id=?',user.id);return {ok:true,unread:one('SELECT COUNT(*) n FROM notifications WHERE user_id=? AND seen=0',user.id).n};}
  if(path.startsWith('/api/admin/')) {
   requireThat(me(user).isAdmin,403,'Administrator access required.');
@@ -365,7 +366,7 @@ export const server=createServer(async(req,res)=>{
 });
 if(process.argv[1]===fileURLToPath(import.meta.url)) {
  const port=Number(process.env.PORT||8787),host=process.env.HOST||'127.0.0.1';
- void discord.start();community.startBots();
+ void discord.start();community.startBots();live.startCleanup();
  server.listen(port,host,()=>console.log(`Gather API listening on http://${host}:${port}`));
- const stop=()=>{discord.stop();void community.stopBots().then(()=>server.close(()=>{db.close();process.exit(0);}));};process.on('SIGTERM',stop);process.on('SIGINT',stop);
+ const stop=()=>{discord.stop();void Promise.all([live.stopCleanup(),community.stopBots()]).then(()=>server.close(()=>{db.close();process.exit(0);}));};process.on('SIGTERM',stop);process.on('SIGINT',stop);
 }

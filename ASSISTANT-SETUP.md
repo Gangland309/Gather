@@ -1,3 +1,7 @@
+# Gather Assistant removed in v0.9.33
+
+The member chat assistant is disabled in this release. Its prior setup instructions below are historical and cannot re-enable it. Admin AI page managers are independent and remain available.
+
 # Enable Gather Assistant
 
 1. Deploy the updated server and client together using INSTALL-THIS-UPDATE.md. Keep the existing database, Render persistent disk and environment variables.

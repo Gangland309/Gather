@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {createChatAssistant} from '../server/chat-assistant.mjs';
+process.env.NODE_ENV='test';
 test('Responses request preserves GPT-5 model choice, disables response storage and sends no account context',async()=>{
  const db=new DatabaseSync(':memory:'),original=globalThis.fetch,oldKey=process.env.OPENAI_API_KEY,oldEnabled=process.env.CHAT_ASSISTANT_ENABLED,oldModel=process.env.CHAT_ASSISTANT_MODEL;
  process.env.OPENAI_API_KEY='fake-test-key';process.env.CHAT_ASSISTANT_ENABLED='true';process.env.CHAT_ASSISTANT_MODEL='gpt-5-mini';
@@ -23,4 +24,9 @@ test('assistant setup can change after an initial disabled check; failed submiss
   process.env.OPENAI_API_KEY='test-secret';assert.deepEqual(await assistant.route({method:'GET'},config,user),{enabled:true});
   await assert.rejects(()=>assistant.route({method:'GET'},config,null),{status:401});
  }finally{for(const [name,value] of [['OPENAI_API_KEY',oldKey],['CHAT_ASSISTANT_ENABLED',oldEnabled]]){if(value===undefined)delete process.env[name];else process.env[name]=value;}db.close();}
+});
+test('removed production chat endpoints cannot call the provider even if old configuration enables them',async()=>{
+ const db=new DatabaseSync(':memory:'),old=process.env.NODE_ENV,enabled=process.env.CHAT_ASSISTANT_ENABLED;process.env.NODE_ENV='production';process.env.CHAT_ASSISTANT_ENABLED='true';
+ const assistant=createChatAssistant({db,requireThat:(ok,status,message)=>{if(!ok)throw Object.assign(new Error(message),{status});}});
+ try{for(const path of ['config','chat'])await assert.rejects(()=>assistant.route({method:path==='chat'?'POST':'GET'},new URL('http://localhost/api/assistant/'+path),{id:'member',email_verified:1}),{status:410});}finally{if(old===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=old;if(enabled===undefined)delete process.env.CHAT_ASSISTANT_ENABLED;else process.env.CHAT_ASSISTANT_ENABLED=enabled;db.close();}
 });

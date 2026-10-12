@@ -1,3 +1,7 @@
+# Cover images
+
+After selecting an MP3, choose Add cover image (optional). JPEG, PNG or WebP up to 5 MB. Change or remove it before publishing. Covers display on music/audiobook cards, and follow audio audience checks.
+
 # Music and audiobook uploads
 
 Open + Post → Choose MP3 → select a file → enter title → Music or Audiobook → confirm you own it or have permission → Upload MP3 → wait for Ready to publish → choose audience → Publish. Your caption appears on the post. One photo, video or MP3 per post. Uploaded audio can be previewed before publishing.

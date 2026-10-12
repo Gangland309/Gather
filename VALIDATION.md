@@ -1,3 +1,15 @@
+# Gather v0.9.35 validation
+
+157 automated tests passed. New tests cover dedicated Gathering posting, membership and URL audience enforcement, empty live/podcast termination, connected viewers, provider failure preservation, connection grace, second-check participants and deletion of legacy ended-live alerts. TypeScript, Expo lint and web/iOS/Android bundle exports passed. Provider responses in lifecycle tests are controlled fakes. No production deployment, real LiveKit connection, browser visual QA or physical-phone testing performed. Bundle exports are not signed native installers.
+
+# Gather v0.9.34 validation
+
+151 automated tests passed, including cover ownership, protected image streaming, removal and published-cover restrictions. TypeScript, lint and web/iOS/Android bundle exports passed. Light-mode background is white; dark-mode background remains plum. No deployment or physical-device/browser visual QA performed.
+
+# Gather v0.9.33 validation
+
+150 automated tests passed, including production chat removal with old enabled settings. TypeScript, lint and web/iOS/Android exports passed. No deployment or browser/phone QA performed.
+
 # Latest validation: Gather v0.9.32
 
 149 automated tests passed. TypeScript, Expo lint and web/iOS/Android bundle exports passed. Changes use existing authenticated search, Gathering and friend-request APIs. Side rail and live previews use real responses; no sample counts or fictional members are inserted. Existing private content and admin guards remain.

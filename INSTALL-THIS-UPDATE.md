@@ -1,3 +1,21 @@
+# Latest release: Gather v0.9.35
+
+Gatherings and Fan Clubs open as dedicated pages with Back navigation. Gathering posts use a dedicated membership-checked endpoint, appear immediately after successful submission and retain drafts on failure. Empty lives and podcasts close automatically after connection and empty-room grace periods. Notifications for ended or missing broadcasts are deleted, including old alerts; other notification history remains. Includes the white light background, MP3 covers and prior updates. See LIVE-CLEANUP.md.
+
+Deploy server and client using the instructions below. Keep database, disk and environment settings. Refresh after deployment.
+
+# Latest release: Gather v0.9.34
+
+White light-mode background replaces ivory/tan; dark mode keeps its plum background. Optional cover images for Music and Audiobook uploads. Add, change or remove cover art before publishing; covers display in web/native audio players and use protected playback grants and audience checks. Includes v0.9.33 design, MP3 features and chat-assistant removal.
+
+Deploy server/client together using the steps below. Keep your database, disk and environment. Use + Post → Choose MP3 → Add cover image. Supported covers: JPEG, PNG or WebP up to 5 MB.
+
+# Latest release: Gather v0.9.33
+
+Member chat assistant removed from menus, shortcuts and screens. Old Assistant links fall back to Home. Production assistant endpoints return HTTP 410 without calling OpenAI, regardless of prior enabled settings. Admin AI page managers remain. The approved v0.9.32 design and MP3 uploads are included.
+
+Deploy server and client together following the instructions below. Preserve database, disk and environment variables. Refresh after deployment.
+
 # Latest release: Gather v0.9.32
 
 Fresh ivory/plum/coral/lilac theme in light mode and a matching plum/coral dark mode. New typographic Gather wordmark and matching default G avatar, softer feed cards, rounded feature chips, clearer navigation symbols, subtle pressed feedback and a circular quick-post button. Mobile header stays compact; search remains inside its menu, fullscreen stays minimal, and MP3 uploads and all earlier features remain. This is a styling update, not a reproduction of illustrative people, counts or features in the concept image. Desktop search is integrated into the header, live previews sit together in a horizontal strip, and the right rail shows actual joined Gatherings and friend suggestions. Quick actions are tucked into the navigation. Existing native launcher/favicon image assets remain unchanged.
